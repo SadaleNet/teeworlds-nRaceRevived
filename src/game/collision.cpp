@@ -26,27 +26,35 @@ void CCollision::Init(class CLayers *pLayers)
 	m_Width = m_pLayers->GameLayer()->m_Width;
 	m_Height = m_pLayers->GameLayer()->m_Height;
 	m_pTiles = static_cast<CTile *>(m_pLayers->Map()->GetData(m_pLayers->GameLayer()->m_Data));
+	m_TileId = new int[m_Width*m_Height];
 
 	for(int i = 0; i < m_Width*m_Height; i++)
 	{
 		int Index = m_pTiles[i].m_Index;
 
-		if(Index > 128)
-			continue;
-
-		switch(Index)
+		if(Index <= 128)
 		{
-		case TILE_DEATH:
-			m_pTiles[i].m_Index = COLFLAG_DEATH;
-			break;
-		case TILE_SOLID:
-			m_pTiles[i].m_Index = COLFLAG_SOLID;
-			break;
-		case TILE_NOHOOK:
-			m_pTiles[i].m_Index = COLFLAG_SOLID|COLFLAG_NOHOOK;
-			break;
-		default:
-			m_pTiles[i].m_Index = 0;
+			switch(Index)
+			{
+			case TILE_DEATH:
+				m_pTiles[i].m_Index = COLFLAG_DEATH;
+				break;
+			case TILE_SOLID:
+				m_pTiles[i].m_Index = COLFLAG_SOLID;
+				break;
+			case TILE_NOHOOK:
+				m_pTiles[i].m_Index = COLFLAG_SOLID|COLFLAG_NOHOOK;
+				break;
+			default:
+				m_pTiles[i].m_Index = 0;
+			}
+		}
+
+		m_TileId[i] = Index;
+		if(m_TileId[i]>=COLID_TELEPORT_BEGIN && m_TileId[i]<=COLID_TELEPORT_END
+			&& (m_TileId[i]-COLID_TELEPORT_BEGIN)%2==0)
+		{
+			m_teleportDest[(m_TileId[i]-COLID_TELEPORT_BEGIN)/2].push_back(vec2((i%m_Width)*32, (i/m_Width)*32));
 		}
 	}
 }
@@ -57,6 +65,14 @@ int CCollision::GetTile(int x, int y)
 	int Ny = clamp(y/32, 0, m_Height-1);
 
 	return m_pTiles[Ny*m_Width+Nx].m_Index > 128 ? 0 : m_pTiles[Ny*m_Width+Nx].m_Index;
+}
+
+int CCollision::GetTileId(int x, int y)
+{
+	int Nx = clamp(x/32, 0, m_Width-1);
+	int Ny = clamp(y/32, 0, m_Height-1);
+
+	return m_TileId[Ny*m_Width+Nx];
 }
 
 bool CCollision::IsTileSolid(int x, int y)

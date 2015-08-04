@@ -569,6 +569,12 @@ void CCharacter::Tick()
 		GameLayerClipped(m_Pos))
 	{
 		Die(m_pPlayer->GetCID(), WEAPON_WORLD);
+	}else{
+		int tileId = GameServer()->Collision()->GetCollisionIdAt(m_Pos.x, m_Pos.y);
+		if(tileId>=CCollision::COLID_TELEPORT_BEGIN&&tileId<=CCollision::COLID_TELEPORT_END
+			&& (tileId-CCollision::COLID_TELEPORT_BEGIN)%2==1){
+			m_Core.m_Pos = GameServer()->Collision()->GetTeleportDestination((tileId-CCollision::COLID_TELEPORT_BEGIN)/2);
+		}
 	}
 
 	// handle Weapons
