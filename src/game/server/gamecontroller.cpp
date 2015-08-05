@@ -344,13 +344,13 @@ int IGameController::OnCharacterDeath(class CCharacter *pVictim, class CPlayer *
 	// do scoreing
 	if(!pKiller || Weapon == WEAPON_GAME)
 		return 0;
-	if(pKiller == pVictim->GetPlayer())
+	if(pKiller == pVictim->GetPlayer() && g_Config.m_SvCountSuicide)
 		pVictim->GetPlayer()->m_Score--; // suicide
 	else
 	{
-		if(IsTeamplay() && pVictim->GetPlayer()->GetTeam() == pKiller->GetTeam())
+		if(IsTeamplay() && pVictim->GetPlayer()->GetTeam() == pKiller->GetTeam() && g_Config.m_SvCountTeamkill)
 			pKiller->m_Score--; // teamkill
-		else
+		else if( g_Config.m_SvCountKill || g_Config.m_SvCountTeamkill )
 			pKiller->m_Score++; // normal kill
 	}
 	if(Weapon == WEAPON_SELF)

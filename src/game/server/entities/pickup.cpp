@@ -2,6 +2,7 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include <game/generated/protocol.h>
 #include <game/server/gamecontext.h>
+#include <engine/shared/config.h>
 #include "pickup.h"
 
 CPickup::CPickup(CGameWorld *pGameWorld, int Type, int SubType)
@@ -109,10 +110,10 @@ void CPickup::Tick()
 		if(RespawnTime >= 0)
 		{
 			char aBuf[256];
-			str_format(aBuf, sizeof(aBuf), "pickup player='%d:%s' item=%d/%d",
-				pChr->GetPlayer()->GetCID(), Server()->ClientName(pChr->GetPlayer()->GetCID()), m_Type, m_Subtype);
+			//str_format(aBuf, sizeof(aBuf), "pickup player='%d:%s' item=%d/%d",
+				//pChr->GetPlayer()->GetCID(), Server()->ClientName(pChr->GetPlayer()->GetCID()), m_Type, m_Subtype);
 			GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
-			m_SpawnTick = Server()->Tick() + Server()->TickSpeed() * RespawnTime;
+			m_SpawnTick = Server()->Tick() + Server()->TickSpeed() * RespawnTime * g_Config.m_SvPickupRespawn;
 		}
 	}
 }

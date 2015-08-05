@@ -846,6 +846,11 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 	if(From == m_pPlayer->GetCID())
 		Dmg = max(1, Dmg/2);
 
+	if( (From == m_pPlayer->GetCID() && !g_Config.m_SvRocketJumpDamage)
+		|| (Weapon == WEAPON_HAMMER && !g_Config.m_SvHammerDamage)
+		|| !g_Config.m_SvEnemyDamage)
+		Dmg = 0;
+
 	if(g_Config.m_SvWaterOxygen && Weapon == WEAPON_WORLD)
 		Dmg = 1;
 
