@@ -83,6 +83,31 @@ MACRO_CONFIG_INT(SvVoteKick, sv_vote_kick, 1, 0, 1, CFGFLAG_SERVER, "Allow votin
 MACRO_CONFIG_INT(SvVoteKickMin, sv_vote_kick_min, 0, 0, MAX_CLIENTS, CFGFLAG_SERVER, "Minimum number of players required to start a kick vote")
 MACRO_CONFIG_INT(SvVoteKickBantime, sv_vote_kick_bantime, 5, 0, 1440, CFGFLAG_SERVER, "The time to ban a player if kicked by vote. 0 makes it just use kick")
 
+/* race */
+MACRO_CONFIG_INT(SvRegen, sv_regen, 0, 0, 10000, CFGFLAG_SERVER, "Set regeneration")
+MACRO_CONFIG_INT(SvInfinitieAmmo, sv_infinite_ammo, 1, 0, 1, CFGFLAG_SERVER, "Enable or disable infinite ammo")
+MACRO_CONFIG_INT(SvInfinitieJumping, sv_infinite_jumping, 0, 0, 1, CFGFLAG_SERVER, "Enable or disable infinite jumping")
+MACRO_CONFIG_INT(SvTeleport, sv_teleport, 1, 0, 1, CFGFLAG_SERVER, "Enable or disable teleportation")
+MACRO_CONFIG_INT(SvTeleportGrenade, sv_teleport_grenade, 0, 0, 1, CFGFLAG_SERVER, "Enable or disable teleport of grenade")
+MACRO_CONFIG_INT(SvTeleportKill, sv_teleport_kill, 0, 0, 1, CFGFLAG_SERVER, "Teleporting one someone kills him")
+MACRO_CONFIG_INT(SvTeleportStrip, sv_teleport_strip, 0, 0, 1, CFGFLAG_SERVER, "Enable or disable keeping weapon after teleporting")
+MACRO_CONFIG_INT(SvRocketJumpDamage, sv_rocket_jump_damage, 0, 0, 1, CFGFLAG_SERVER, "Enable or disable rocket jump damage")
+MACRO_CONFIG_INT(SvPickupRespawn, sv_pickup_respawn, 1, 0, 10, CFGFLAG_SERVER, "Time before a pickup respawn")
+MACRO_CONFIG_INT(SvSpeedupMult, sv_speedup_mult, 10, 1, 100, CFGFLAG_SERVER, "Boost power by multiplication")
+MACRO_CONFIG_INT(SvSpeedupAdd, sv_speedup_add, 5, -100, 100, CFGFLAG_SERVER, "Boost power")
+MACRO_CONFIG_INT(SvJumperAdd, sv_jumper_add, 7, -100, 100, CFGFLAG_SERVER, "Jumper power")
+MACRO_CONFIG_INT(SvGravityAdd, sv_gravity_add, 3, -100, 100, CFGFLAG_SERVER, "Gravity power")
+MACRO_CONFIG_INT(SvScoreIp, sv_score_ip, 1, 0, 1, CFGFLAG_SERVER, "Adds the IPs to the recordfile")
+MACRO_CONFIG_INT(SvCheckpointSave, sv_checkpoint_save, 1, 0, 1, CFGFLAG_SERVER, "Saves checkpoints to the recordfile")
+MACRO_CONFIG_INT(SvEnemyDamage, sv_enemy_damage, 0, 0, 1, CFGFLAG_SERVER, "Enable damage from enemys")
+MACRO_CONFIG_INT(SvHammarDamage, sv_hammer_damage, 1, 0, 1, CFGFLAG_SERVER, "Enable damage from hammer")
+MACRO_CONFIG_INT(SvCountSuicide, sv_count_suicide, 0, 0, 1, CFGFLAG_SERVER, "Enable counting of suicide kills")
+MACRO_CONFIG_INT(SvCountTeamkill, sv_count_teamkill, 0, 0, 1, CFGFLAG_SERVER, "Enable counting of team kills")
+MACRO_CONFIG_INT(SvCountKill, sv_count_kill, 0, 0, 1, CFGFLAG_SERVER, "Enable counting of normal kills")
+MACRO_CONFIG_STR(SvWhitelist, sv_whitelist, 1000, "whitelist.cfg", CFGFLAG_SERVER, "Selects whitelist file")
+MACRO_CONFIG_INT(SvAutoreset, sv_autoreset, 0, 0, 1, CFGFLAG_SERVER, "Auto 'tune_reset' and 'exec autoexec.cfg' on Mapchange")
+MACRO_CONFIG_INT(SvLoadEnd, sv_load_end, 0, 0, 1, CFGFLAG_SERVER, "End of race on +load")
+
 // debug
 #ifdef CONF_DEBUG // this one can crash the server if not used correctly
 	MACRO_CONFIG_INT(DbgDummies, dbg_dummies, 0, 0, 15, CFGFLAG_SERVER, "")

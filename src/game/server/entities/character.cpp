@@ -561,20 +561,38 @@ void CCharacter::Tick()
 	m_Core.m_Input = m_Input;
 	m_Core.Tick(true);
 
-	// handle death-tiles and leaving gamelayer
-	if(GameServer()->Collision()->GetCollisionAt(m_Pos.x+m_ProximityRadius/3.f, m_Pos.y-m_ProximityRadius/3.f)&CCollision::COLFLAG_DEATH ||
-		GameServer()->Collision()->GetCollisionAt(m_Pos.x+m_ProximityRadius/3.f, m_Pos.y+m_ProximityRadius/3.f)&CCollision::COLFLAG_DEATH ||
-		GameServer()->Collision()->GetCollisionAt(m_Pos.x-m_ProximityRadius/3.f, m_Pos.y-m_ProximityRadius/3.f)&CCollision::COLFLAG_DEATH ||
-		GameServer()->Collision()->GetCollisionAt(m_Pos.x-m_ProximityRadius/3.f, m_Pos.y+m_ProximityRadius/3.f)&CCollision::COLFLAG_DEATH ||
-		GameLayerClipped(m_Pos))
-	{
+	// handle tiles
+	int tileId = GameServer()->Collision()->GetCollisionIdAt(m_Pos.x, m_Pos.y);
+	if(tileId==CCollision::COLID_DEATH){
 		Die(m_pPlayer->GetCID(), WEAPON_WORLD);
-	}else{
-		int tileId = GameServer()->Collision()->GetCollisionIdAt(m_Pos.x, m_Pos.y);
-		if(tileId>=CCollision::COLID_TELEPORT_BEGIN&&tileId<=CCollision::COLID_TELEPORT_END
-			&& (tileId-CCollision::COLID_TELEPORT_BEGIN)%2==1){
-			m_Core.m_Pos = GameServer()->Collision()->GetTeleportDestination((tileId-CCollision::COLID_TELEPORT_BEGIN)/2);
-		}
+	}else if(tileId==CCollision::COLID_BOOSTUP){
+		m_Core.m_Vel.y = m_Core.m_Vel.y-g_Config.m_SvJumperAdd;
+	}else if(tileId==CCollision::COLID_BOOSTDOWN){
+		m_Core.m_Vel.y = m_Core.m_Vel.y+g_Config.m_SvGravityAdd;
+	}else if(tileId==CCollision::COLID_BOOSTLEFT){
+		if(m_Core.m_Vel.x <= 0)
+			m_Core.m_Vel.x = m_Core.m_Vel.x*(((float)g_Config.m_SvSpeedupMult)/10.0)-g_Config.m_SvSpeedupAdd;
+		else
+			m_Core.m_Vel.x = 0-g_Config.m_SvSpeedupAdd;
+	}else if(tileId==CCollision::COLID_BOOSTRIGHT){
+		if(m_Core.m_Vel.x >= 0)
+			m_Core.m_Vel.x = m_Core.m_Vel.x*(((float)g_Config.m_SvSpeedupMult)/10.0)+g_Config.m_SvSpeedupAdd;
+		else
+			m_Core.m_Vel.x = g_Config.m_SvSpeedupAdd;
+	}else if(tileId==CCollision::COLID_BOOSTH){
+		vec2 speedup;
+		if(m_Core.m_Vel.x >= 0)
+			m_Core.m_Vel.x = m_Core.m_Vel.x*(((float)g_Config.m_SvSpeedupMult)/10.0)+g_Config.m_SvSpeedupAdd;
+		else
+			m_Core.m_Vel.x = m_Core.m_Vel.x*(((float)g_Config.m_SvSpeedupMult)/10.0)-g_Config.m_SvSpeedupAdd;
+	}else if(tileId==CCollision::COLID_BOOSTV){
+		if(m_Core.m_Vel.y >= 0)
+			m_Core.m_Vel.y = m_Core.m_Vel.y+g_Config.m_SvGravityAdd;
+		else
+			m_Core.m_Vel.y = m_Core.m_Vel.y-g_Config.m_SvJumperAdd;
+	}else if(tileId>=CCollision::COLID_TELEPORT_BEGIN&&tileId<=CCollision::COLID_TELEPORT_END
+		&& (tileId-CCollision::COLID_TELEPORT_BEGIN)%2==1){
+		m_Core.m_Pos = GameServer()->Collision()->GetTeleportDestination((tileId-CCollision::COLID_TELEPORT_BEGIN)/2);
 	}
 
 	// handle Weapons

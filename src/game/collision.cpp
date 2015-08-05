@@ -54,7 +54,7 @@ void CCollision::Init(class CLayers *pLayers)
 		if(m_TileId[i]>=COLID_TELEPORT_BEGIN && m_TileId[i]<=COLID_TELEPORT_END
 			&& (m_TileId[i]-COLID_TELEPORT_BEGIN)%2==0)
 		{
-			m_teleportDest[(m_TileId[i]-COLID_TELEPORT_BEGIN)/2].push_back(vec2((i%m_Width)*32, (i/m_Width)*32));
+			m_teleportDest[(m_TileId[i]-COLID_TELEPORT_BEGIN)/2].push_back(vec2((i%m_Width)*32+16, (i/m_Width)*32+16));
 		}
 	}
 }
