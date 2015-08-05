@@ -104,7 +104,7 @@ MACRO_CONFIG_INT(SvHammerDamage, sv_hammer_damage, 1, 0, 1, CFGFLAG_SERVER, "Ena
 MACRO_CONFIG_INT(SvCountSuicide, sv_count_suicide, 0, 0, 1, CFGFLAG_SERVER, "Enable counting of suicide kills")
 MACRO_CONFIG_INT(SvCountTeamkill, sv_count_teamkill, 0, 0, 1, CFGFLAG_SERVER, "Enable counting of team kills")
 MACRO_CONFIG_INT(SvCountKill, sv_count_kill, 0, 0, 1, CFGFLAG_SERVER, "Enable counting of normal kills")
-MACRO_CONFIG_STR(SvWhitelist, sv_whitelist, 1000, "whitelist.cfg", CFGFLAG_SERVER, "[Not implemented]Selects whitelist file")
+MACRO_CONFIG_STR(SvWhitelist, sv_whitelist, 1000, "whitelist.cfg", CFGFLAG_SERVER, "Selects whitelist file")
 MACRO_CONFIG_INT(SvAutoreset, sv_autoreset, 0, 0, 1, CFGFLAG_SERVER, "Auto 'tune_reset' and 'exec autoexec.cfg' on Mapchange")
 MACRO_CONFIG_INT(SvLoadEnd, sv_load_end, 0, 0, 1, CFGFLAG_SERVER, "End of race on +load")
 
