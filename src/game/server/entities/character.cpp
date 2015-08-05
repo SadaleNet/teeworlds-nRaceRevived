@@ -606,6 +606,24 @@ void CCharacter::Tick()
 		m_IsWater = false;
 	}
 
+	if(g_Config.m_SvWaterOxygen)
+	{
+		if (m_IsWater)
+		{
+			if((Server()->Tick() % (int)(g_Config.m_SvWaterOxyDrain / 1000.0f * 50)) == 0)
+			{
+				if(m_Armor)
+					m_Armor--;
+				else
+				{
+					TakeDamage(vec2(0,0), 1, m_pPlayer->GetCID(), WEAPON_WORLD);
+					GameServer()->SendEmoticon(m_pPlayer->GetCID(),  g_Config.m_SvWaterOxyEmoteid);
+				}
+			}
+		}else if((Server()->Tick() % (int)(g_Config.m_SvWaterOxyRegen / 1000.0f * 50)) == 0 && m_Armor < 10)
+			m_Armor++;
+	}
+
 	if(tileId==CCollision::COLID_DEATH){
 		Die(m_pPlayer->GetCID(), WEAPON_WORLD);
 	}else if(tileId==CCollision::COLID_BOOSTUP){
@@ -802,6 +820,9 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 	if(From == m_pPlayer->GetCID())
 		Dmg = max(1, Dmg/2);
 
+	if(g_Config.m_SvWaterOxygen && Weapon == WEAPON_WORLD)
+		Dmg = 1;
+
 	m_DamageTaken++;
 
 	// create healthmod indicator
@@ -815,10 +836,9 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 		m_DamageTaken = 0;
 		GameServer()->CreateDamageInd(m_Pos, 0, Dmg);
 	}
-
 	if(Dmg)
 	{
-		if(m_Armor)
+		if(!g_Config.m_SvWaterOxygen && m_Armor)
 		{
 			if(Dmg > 1)
 			{
