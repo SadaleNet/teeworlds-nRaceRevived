@@ -121,7 +121,7 @@ MACRO_CONFIG_INT(SvWaterOxyDrain, sv_water_oxy_drain, 1300, -100000, 100000, CFG
 MACRO_CONFIG_INT(SvWaterOxyRegen, sv_water_oxy_regen, 250, -100000, 100000, CFGFLAG_SERVER, "oxygen regeneration")
 MACRO_CONFIG_INT(SvWaterOxyEmoteid, sv_water_oxy_emoteid, 3, 0, 100000, CFGFLAG_SERVER, "emote id")
 MACRO_CONFIG_INT(SvWaterLaserjump, sv_water_laserjump, 0, 0, 1, CFGFLAG_SERVER, "laser jumps =D")
-MACRO_CONFIG_INT(SvWaterKicktime, sv_water_kicktime, 10000, 0, 10000, CFGFLAG_SERVER, "auto kick time")
+MACRO_CONFIG_INT(SvWaterKicktime, sv_water_kicktime, 10000, 0, 10000, CFGFLAG_SERVER, "[Not implemented in [N]RaceRevived]auto kick time")
 MACRO_CONFIG_INT(SvWaterRambo, sv_water_rambo, 0, 0, 1, CFGFLAG_SERVER, "easter egg")
 MACRO_CONFIG_INT(SvWaterGain, sv_water_gain, 100, 0, 100000, CFGFLAG_SERVER, "speed change when accelerated by water")
 //MACRO_CONFIG_INT(SvWaterReflect, sv_water_reflect, 1, 0, 1, CFGFLAG_SERVER, "reflect lasers by water")
