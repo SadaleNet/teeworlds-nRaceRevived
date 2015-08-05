@@ -9,9 +9,6 @@
 #include <game/version.h>
 #include <game/collision.h>
 #include <game/gamecore.h>
-#include "gamemodes/dm.h"
-#include "gamemodes/tdm.h"
-#include "gamemodes/ctf.h"
 #include "gamemodes/mod.h"
 
 enum
@@ -1491,6 +1488,12 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 	// reset everything here
 	//world = new GAMEWORLD;
 	//players = new CPlayer[MAX_CLIENTS];
+
+        if(g_Config.m_SvAutoreset)
+        {
+                Console()->ExecuteLine("tune_reset");
+                Console()->ExecuteFile("autoexec.cfg");
+	}
 
 	// select gametype
 	m_pController = new CGameControllerMOD(this);
