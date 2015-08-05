@@ -78,6 +78,8 @@ bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 
 	GameServer()->m_pController->OnCharacterSpawn(this);
 
+	m_RaceStarted = false;
+
 	return true;
 }
 
@@ -573,9 +575,10 @@ void CCharacter::Tick()
 			m_Armor++;
 	}
 
-	// handle tiles
+	//handle tiles
 	int tileId = GameServer()->Collision()->GetCollisionIdAt(m_Pos.x, m_Pos.y);
 
+	//handle water tiles
 	if(tileId>=CCollision::COLID_WATER_BEGIN&&tileId<=CCollision::COLID_WATER_END)
 	{
 		if(!m_IsWater)
@@ -635,6 +638,11 @@ void CCharacter::Tick()
 			m_Armor++;
 	}
 
+
+	//for race tiles
+	float raceTime = (float)(Server()->Tick()-m_StartTime)/((float)Server()->TickSpeed());
+
+	//handle other death, boost and teleport tiles
 	if(tileId==CCollision::COLID_DEATH){
 		Die(m_pPlayer->GetCID(), WEAPON_WORLD);
 	}else if(tileId==CCollision::COLID_BOOSTUP){
@@ -662,24 +670,92 @@ void CCharacter::Tick()
 			m_Core.m_Vel.y = m_Core.m_Vel.y+g_Config.m_SvGravityAdd;
 		else
 			m_Core.m_Vel.y = m_Core.m_Vel.y-g_Config.m_SvJumperAdd;
-	}else if(tileId>=CCollision::COLID_TELEPORT_BEGIN&&tileId<=CCollision::COLID_TELEPORT_END
-		&& (tileId-CCollision::COLID_TELEPORT_BEGIN)%2==1){
-		if( g_Config.m_SvTeleport )
+	}else if(tileId==CCollision::COLID_RACE_START){
+		if( !m_aWeapons[WEAPON_GRENADE].m_Got || !m_RaceStarted )
 		{
-			m_Core.m_HookedPlayer = -1;
-			m_Core.m_HookState = HOOK_RETRACTED;
-			m_Core.m_TriggeredEvents |= COREEVENT_HOOK_RETRACT;
-			m_Core.m_Pos = GameServer()->Collision()->GetTeleportDestination((tileId-CCollision::COLID_TELEPORT_BEGIN)/2);
-			m_Core.m_HookPos = m_Core.m_Pos;
-			if(g_Config.m_SvTeleportStrip)
+			m_StartTime = Server()->Tick();
+			m_RefreshTime = Server()->Tick();
+			m_RaceStarted = true;
+		}
+	}else if(tileId==CCollision::COLID_RACE_END){
+		if( m_RaceStarted )
+		{
+			char buf[128];
+			if ((int)raceTime/60 != 0)
+				str_format(buf, sizeof(buf), "%s finished in: %d minute(s) %5.3f second(s)", Server()->ClientName(m_pPlayer->GetCID()), (int)raceTime/60, raceTime-((int)raceTime/60*60));
+			else
+				str_format(buf, sizeof(buf), "%s finished in: %5.3f second(s)", Server()->ClientName(m_pPlayer->GetCID()), raceTime-((int)raceTime/60*60));
+			GameServer()->SendChat(-1, CGameContext::CHAT_ALL, buf);
+
+			/*TODO: unimplemented score.cpp
+			PLAYER_SCORE *pscore = ((GAMECONTROLLER_RACE*)game.controller)->score.search_score(player->client_id, 0, 0);
+			if(pscore && raceTime - pscore->score < 0)
 			{
-				m_ActiveWeapon = WEAPON_HAMMER;
-				m_LastWeapon = WEAPON_HAMMER;
-				m_aWeapons[0].m_Got = true;
-				for(int i = 1; i < 5; i++)
-					m_aWeapons[i].m_Got = false;
+				str_format(buf, sizeof(buf), "New record: %5.3f second(s) better", raceTime - pscore->score);
+				game.send_chat(-1, GAMECONTEXT::CHAT_ALL, buf);
+			}
+
+			if(raceTime < player->score || !player->score)
+				player->score = (int)raceTime;*/
+
+			m_RaceStarted = false;
+
+			/*TODO: unimplemented player.cpp save_x save_y diff
+			if(strncmp(Server()->ClientName(m_pPlayer->GetCID()), "nameless tee", 12) != 0)
+				((GAMECONTROLLER_RACE*)game.controller)->score.parsePlayer(m_pPlayer->GetCID(), (float)raceTime, m_CpCurrent, m_pPlayer->m_SaveX, m_pPlayer->m_SaveY, m_pPlayer->m_diff);*/
+		}
+	}else if(tileId>=CCollision::COLID_TELEPORT_BEGIN&&tileId<=CCollision::COLID_TELEPORT_END){
+		int teleportId = (tileId-CCollision::COLID_TELEPORT_BEGIN)/2;
+		if( (tileId-CCollision::COLID_TELEPORT_BEGIN)%2==0 ){ //handle to tiles
+			//If a teleport has "to" without a "from", then it's a checkpoint.
+			if(m_RaceStarted && GameServer()->Collision()->IsCheckpoint(teleportId))
+			{
+				m_CpActive = teleportId;
+				m_CpCurrent[m_CpActive] = raceTime;
+				m_CpTick = Server()->Tick() + Server()->TickSpeed()*2;
+			}
+		}else{ //handle from tiles
+			if( g_Config.m_SvTeleport )
+			{
+				m_Core.m_HookedPlayer = -1;
+				m_Core.m_HookState = HOOK_RETRACTED;
+				m_Core.m_TriggeredEvents |= COREEVENT_HOOK_RETRACT;
+				m_Core.m_Pos = GameServer()->Collision()->GetTeleportDestination(teleportId);
+				m_Core.m_HookPos = m_Core.m_Pos;
+				if(g_Config.m_SvTeleportStrip)
+				{
+					m_ActiveWeapon = WEAPON_HAMMER;
+					m_LastWeapon = WEAPON_HAMMER;
+					m_aWeapons[0].m_Got = true;
+					for(int i = 1; i < 5; i++)
+						m_aWeapons[i].m_Got = false;
+				}
 			}
 		}
+	}
+
+	//post tile handling for checkpoint tiles
+	if(m_RaceStarted && Server()->Tick()-m_RefreshTime >= Server()->TickSpeed())
+	{
+		char buftime[128];
+		int int_time = (int)raceTime;
+		str_format(buftime, sizeof(buftime), "Current time: %d min %d sec", int_time/60, (int_time%60));
+
+		if(m_CpActive && m_CpTick > Server()->Tick())
+		{
+			/*TODO: unimplemented score.cpp
+			PLAYER_SCORE *pscore = ((GAMECONTROLLER_RACE*)game.controller)->score.search_score(player->client_id, 0, 0);
+			if(pscore && pscore->cp_time[cp_active] != 0)
+			{
+				char tmp[128];
+				float diff = cp_current[cp_active] - pscore->cp_time[cp_active];
+				str_format(tmp, sizeof(tmp), "\nCheckpoint | Diff : %s%5.3f", (diff >= 0)?"+":"", diff);
+				strcat(buftime, tmp);
+			}*/
+		}
+
+		GameServer()->SendBroadcast(buftime, m_pPlayer->GetCID());
+		m_RefreshTime = Server()->Tick();
 	}
 
 	// handle Weapons

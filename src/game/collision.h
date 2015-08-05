@@ -26,6 +26,8 @@ public:
 		COLID_BOOSTRIGHT,
 		COLID_BOOSTH,
 		COLID_BOOSTUP,
+		COLID_RACE_START=33,
+		COLID_RACE_END,
 		COLID_TELEPORT_BEGIN=35,
 		COLID_TELEPORT_END=190,
 	};
@@ -55,6 +57,7 @@ public:
 	int GetCollisionAt(float x, float y) { return GetTile(round(x), round(y)); }
 	int GetCollisionIdAt(float x, float y) { return GetTileId(round(x), round(y)); }
 	vec2 GetTeleportDestination(int teleportId) { return m_teleportDest[teleportId].empty() ? vec2(0,0) : m_teleportDest[teleportId][rand()%m_teleportDest[teleportId].size()]; }
+	bool IsCheckpoint(int teleportId) { return m_teleportDest[teleportId].empty(); }
 	int GetWidth() { return m_Width; };
 	int GetHeight() { return m_Height; };
 	int IntersectLine(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision);

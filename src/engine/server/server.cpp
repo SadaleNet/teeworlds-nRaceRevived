@@ -1270,6 +1270,10 @@ int CServer::LoadMap(const char *pMapName)
 	if(!m_pMap->Load(aBuf))
 		return 0;
 
+	char aBufCfg[512];
+	str_format(aBufCfg, sizeof(aBufCfg), "maps/%s.cfg", pMapName);
+	Console()->ExecuteFile(aBufCfg);
+
 	// stop recording when we change map
 	m_DemoRecorder.Stop();
 

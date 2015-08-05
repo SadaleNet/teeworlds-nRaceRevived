@@ -116,6 +116,16 @@ private:
 
 	bool m_IsWater, m_DoSplash;
 
+	// race var
+	int m_StartTime;
+	int m_RefreshTime;
+	bool m_RaceStarted;
+
+	// checkpoints
+	int m_CpTick;
+	int m_CpActive;
+	float m_CpCurrent[CCollision::COLID_TELEPORT_END-CCollision::COLID_TELEPORT_BEGIN];
+
 	// ninja
 	struct
 	{
