@@ -2,6 +2,7 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include <game/generated/protocol.h>
 #include <game/server/gamecontext.h>
+#include <engine/shared/config.h>
 #include "laser.h"
 
 CLaser::CLaser(CGameWorld *pGameWorld, vec2 Pos, vec2 Direction, float StartEnergy, int Owner)
@@ -52,6 +53,9 @@ void CLaser::DoBounce()
 			// intersected
 			m_From = m_Pos;
 			m_Pos = To;
+
+			if(g_Config.m_SvWaterLaserjump)
+				GameServer()->CreateExplosion(To, m_Owner, -1, false);
 
 			vec2 TempPos = m_Pos;
 			vec2 TempDir = m_Dir * 4.0f;
