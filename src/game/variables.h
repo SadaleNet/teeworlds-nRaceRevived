@@ -108,6 +108,25 @@ MACRO_CONFIG_STR(SvWhitelist, sv_whitelist, 1000, "whitelist.cfg", CFGFLAG_SERVE
 MACRO_CONFIG_INT(SvAutoreset, sv_autoreset, 0, 0, 1, CFGFLAG_SERVER, "Auto 'tune_reset' and 'exec autoexec.cfg' on Mapchange")
 MACRO_CONFIG_INT(SvLoadEnd, sv_load_end, 0, 0, 1, CFGFLAG_SERVER, "End of race on +load")
 
+/* watermod */
+MACRO_CONFIG_INT(SvWaterGravity, sv_water_gravity, 30, -10000, 10000, CFGFLAG_SERVER, "gravty")
+MACRO_CONFIG_INT(SvWaterMaxx, sv_water_maxx, 600, -10000, 10000, CFGFLAG_SERVER, "maxx")
+MACRO_CONFIG_INT(SvWaterMaxy, sv_water_maxy, 450, -10000, 10000, CFGFLAG_SERVER, "maxy")
+MACRO_CONFIG_INT(SvWaterFriction, sv_water_friction, 90, -10000, 10000, CFGFLAG_SERVER, "friction")
+MACRO_CONFIG_INT(SvWaterInsta, sv_water_insta, 0, 0, 1, CFGFLAG_SERVER, "[Not implemented in [N]RaceRevived]insta gib")
+MACRO_CONFIG_INT(SvWaterStrip, sv_water_strip, 1, 0, 1, CFGFLAG_SERVER, "[Not implemented in [N]RaceRevived]if using insta gib, strip weapon first")
+MACRO_CONFIG_INT(SvWaterFreezetime, sv_water_freezetime, 60, 0, 100000, CFGFLAG_SERVER, "[Not implemented in [N]RaceRevived]if using insta gib, freeze time the hammer freezes you (50=1 sec, 100 = 2 sec, ...)")
+MACRO_CONFIG_INT(SvWaterOxygen, sv_water_oxygen, 0, 0, 1, CFGFLAG_SERVER, "use oxygen")
+MACRO_CONFIG_INT(SvWaterOxyDrain, sv_water_oxy_drain, 1300, -100000, 100000, CFGFLAG_SERVER, "oxygen drainage")
+MACRO_CONFIG_INT(SvWaterOxyRegen, sv_water_oxy_regen, 250, -100000, 100000, CFGFLAG_SERVER, "oxygen regeneration")
+MACRO_CONFIG_INT(SvWaterOxyEmoteid, sv_water_oxy_emoteid, 3, 0, 100000, CFGFLAG_SERVER, "emote id")
+MACRO_CONFIG_INT(SvWaterLaserjump, sv_water_laserjump, 0, 0, 1, CFGFLAG_SERVER, "laser jumps =D")
+MACRO_CONFIG_INT(SvWaterKicktime, sv_water_kicktime, 10000, 0, 10000, CFGFLAG_SERVER, "auto kick time")
+MACRO_CONFIG_INT(SvWaterRambo, sv_water_rambo, 0, 0, 1, CFGFLAG_SERVER, "easter egg")
+MACRO_CONFIG_INT(SvWaterGain, sv_water_gain, 100, 0, 100000, CFGFLAG_SERVER, "speed change when accelerated by water")
+//MACRO_CONFIG_INT(SvWaterReflect, sv_water_reflect, 1, 0, 1, CFGFLAG_SERVER, "reflect lasers by water")
+
+
 // debug
 #ifdef CONF_DEBUG // this one can crash the server if not used correctly
 	MACRO_CONFIG_INT(DbgDummies, dbg_dummies, 0, 0, 15, CFGFLAG_SERVER, "")

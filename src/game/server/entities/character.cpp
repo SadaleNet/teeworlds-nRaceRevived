@@ -560,9 +560,52 @@ void CCharacter::Tick()
 
 	m_Core.m_Input = m_Input;
 	m_Core.Tick(true);
+	m_DoSplash = false;
 
 	// handle tiles
 	int tileId = GameServer()->Collision()->GetCollisionIdAt(m_Pos.x, m_Pos.y);
+
+	if(tileId>=CCollision::COLID_WATER_BEGIN&&tileId<=CCollision::COLID_WATER_END)
+	{
+		if(!m_IsWater)
+		{
+			//play a cool sound
+			GameServer()->CreateSound(m_Pos, SOUND_PLAYER_SPAWN);
+			m_DoSplash = true;
+			//game.create_explosion(pos, -1, -1, true);
+		}
+		m_Core.m_Vel.y -= GameServer()->Tuning()->m_Gravity; //counter the normal gravity
+		m_Core.m_Vel.y += g_Config.m_SvWaterGravity/100.0f;
+		if(m_Core.m_Vel.x > g_Config.m_SvWaterMaxx/100.0f || m_Core.m_Vel.x < -g_Config.m_SvWaterMaxx/100.0f)
+			m_Core.m_Vel.x *= g_Config.m_SvWaterFriction/100.0f;
+		if(m_Core.m_Vel.y > g_Config.m_SvWaterMaxy/100.0f || m_Core.m_Vel.y < -g_Config.m_SvWaterMaxy/100.0f)
+			m_Core.m_Vel.y *= g_Config.m_SvWaterFriction/100.0f;
+		if(m_Core.m_Jumped >= 2)
+			m_Core.m_Jumped = 1;
+		
+		if(tileId == CCollision::COLID_WATER_UP)
+			m_Core.m_Vel.y -= g_Config.m_SvWaterGain/100.0f;
+		else if(tileId == CCollision::COLID_WATER_DOWN)
+			m_Core.m_Vel.y += g_Config.m_SvWaterGain/100.0f;
+		else if(tileId == CCollision::COLID_WATER_LEFT)
+			m_Core.m_Vel.x -= g_Config.m_SvWaterGain/100.0f;
+		else if(tileId == CCollision::COLID_WATER_RIGHT)
+			m_Core.m_Vel.x += g_Config.m_SvWaterGain/100.0f;
+		
+		m_IsWater = true;
+	}
+	else
+	{
+		if(m_IsWater)
+		{
+			//play another cool sound
+			GameServer()->CreateSound(m_Pos, SOUND_PLAYER_SPAWN);
+			m_DoSplash = true;
+		}
+		
+		m_IsWater = false;
+	}
+
 	if(tileId==CCollision::COLID_DEATH){
 		Die(m_pPlayer->GetCID(), WEAPON_WORLD);
 	}else if(tileId==CCollision::COLID_BOOSTUP){
@@ -864,6 +907,9 @@ void CCharacter::Snap(int SnappingClient)
 		pCharacter->m_Tick = m_ReckoningTick;
 		m_SendCore.Write(pCharacter);
 	}
+
+	if(m_DoSplash)
+		pCharacter->m_Jumped = 3;
 
 	// set emote
 	if (m_EmoteStop < Server()->Tick())
