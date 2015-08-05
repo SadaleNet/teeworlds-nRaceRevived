@@ -2,6 +2,7 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include <game/generated/protocol.h>
 #include <game/server/gamecontext.h>
+#include <engine/shared/config.h>
 #include "projectile.h"
 
 CProjectile::CProjectile(CGameWorld *pGameWorld, int Type, int Owner, vec2 Pos, vec2 Dir, int Span,
@@ -79,6 +80,15 @@ void CProjectile::Tick()
 			TargetChr->TakeDamage(m_Direction * max(0.001f, m_Force), m_Damage, m_Owner, m_Weapon);
 
 		GameServer()->m_World.DestroyEntity(this);
+	}
+
+	int tileId = GameServer()->Collision()->GetCollisionIdAt(CurPos.x, CurPos.y);
+	if(g_Config.m_SvTeleport && g_Config.m_SvTeleportGrenade && m_Weapon == WEAPON_GRENADE
+		&& tileId>=CCollision::COLID_TELEPORT_BEGIN&&tileId<=CCollision::COLID_TELEPORT_END
+		&& (tileId-CCollision::COLID_TELEPORT_BEGIN)%2==1)
+	{
+ 		m_Pos = GameServer()->Collision()->GetTeleportDestination((tileId-CCollision::COLID_TELEPORT_BEGIN)/2);
+  		m_StartTick=Server()->Tick();
 	}
 }
 

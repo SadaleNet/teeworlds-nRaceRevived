@@ -664,7 +664,22 @@ void CCharacter::Tick()
 			m_Core.m_Vel.y = m_Core.m_Vel.y-g_Config.m_SvJumperAdd;
 	}else if(tileId>=CCollision::COLID_TELEPORT_BEGIN&&tileId<=CCollision::COLID_TELEPORT_END
 		&& (tileId-CCollision::COLID_TELEPORT_BEGIN)%2==1){
-		m_Core.m_Pos = GameServer()->Collision()->GetTeleportDestination((tileId-CCollision::COLID_TELEPORT_BEGIN)/2);
+		if( g_Config.m_SvTeleport )
+		{
+			m_Core.m_HookedPlayer = -1;
+			m_Core.m_HookState = HOOK_RETRACTED;
+			m_Core.m_TriggeredEvents |= COREEVENT_HOOK_RETRACT;
+			m_Core.m_Pos = GameServer()->Collision()->GetTeleportDestination((tileId-CCollision::COLID_TELEPORT_BEGIN)/2);
+			m_Core.m_HookPos = m_Core.m_Pos;
+			if(g_Config.m_SvTeleportStrip)
+			{
+				m_ActiveWeapon = WEAPON_HAMMER;
+				m_LastWeapon = WEAPON_HAMMER;
+				m_aWeapons[0].m_Got = true;
+				for(int i = 1; i < 5; i++)
+					m_aWeapons[i].m_Got = false;
+			}
+		}
 	}
 
 	// handle Weapons
