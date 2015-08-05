@@ -562,6 +562,14 @@ void CCharacter::Tick()
 	m_Core.Tick(true);
 	m_DoSplash = false;
 
+	if(g_Config.m_SvRegen > 0 && (Server()->Tick()%g_Config.m_SvRegen) == 0)
+	{
+		if(m_Health < 10) 
+			m_Health++;
+		else if(m_Armor < 10)
+			m_Armor++;
+	}
+
 	// handle tiles
 	int tileId = GameServer()->Collision()->GetCollisionIdAt(m_Pos.x, m_Pos.y);
 
