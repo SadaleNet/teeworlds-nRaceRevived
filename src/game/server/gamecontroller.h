@@ -5,6 +5,44 @@
 
 #include <base/vmath.h>
 
+class CLight;
+struct Door
+{
+	Door()
+	{
+		m_Act = false;
+		m_Valid = false;
+		m_ChangeTick = 0;
+		for(int i = 0; i < 128; i++) {
+			m_Pos[i] = vec2(-42, -42);
+			m_APos[i] = vec2(-42, -42);
+			m_Mark[i] = false;
+		}
+		m_TmpStart = vec2(-42,-42);
+		m_TmpEnd = vec2(-42,-42);
+		m_PosCount = 0;
+		m_APosCount = 0;
+		m_Circle = true;
+	}
+
+	bool m_Act;
+	bool m_Valid;
+	bool m_Circle;
+	int m_PosCount;
+	int m_APosCount;
+	int m_ChangeTick;
+
+	vec2 m_TmpPos[126];
+	bool m_Mark[128];
+	vec2 m_TmpStart;
+	vec2 m_TmpEnd;
+
+	vec2 m_Pos[128];
+	vec2 m_APos[128];
+	CLight* m_Light[127];
+	CLight* m_ALight[128][5];
+};
+
 /*
 	Class: Game Controller
 		Controls the main game logic. Keeping track of team and player score,
@@ -62,6 +100,8 @@ protected:
 
 public:
 	const char *m_pGameType;
+	static const int DOORS_NUM = 16;
+	Door m_Doors[DOORS_NUM];
 
 	bool IsTeamplay() const;
 	bool IsGameOver() const { return m_GameOverTick != -1; }
@@ -142,6 +182,10 @@ public:
 	int ClampTeam(int Team);
 
 	virtual void PostReset();
+
+	void InitDoors();
+	bool GetDoor(int idx);
+	void SetDoor(int idx, bool active);
 };
 
 #endif

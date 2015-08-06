@@ -1,11 +1,13 @@
 /* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include <engine/shared/config.h>
+#include <game/server/gamecontext.h>
 #include <game/mapitems.h>
 
 #include <game/generated/protocol.h>
 
 #include "entities/pickup.h"
+#include "entities/light.h"
 #include "gamecontroller.h"
 #include "gamecontext.h"
 
@@ -130,6 +132,8 @@ bool IGameController::OnEntity(int Index, vec2 Pos)
 	int Type = -1;
 	int SubType = 0;
 
+	const int DOOR_BASE = 17;
+
 	if(Index == ENTITY_SPAWN)
 		m_aaSpawnPoints[0][m_aNumSpawnPoints[0]++] = Pos;
 	else if(Index == ENTITY_SPAWN_RED)
@@ -159,6 +163,26 @@ bool IGameController::OnEntity(int Index, vec2 Pos)
 	{
 		Type = POWERUP_NINJA;
 		SubType = WEAPON_NINJA;
+	}else if(Index >= DOOR_BASE && Index < DOOR_BASE+16) {
+		if(m_Doors[Index-DOOR_BASE].m_TmpStart == vec2(-42,-42)) {
+			m_Doors[Index-DOOR_BASE].m_TmpStart = Pos;
+			m_Doors[Index-DOOR_BASE].m_TmpEnd = Pos;
+			m_Doors[Index-DOOR_BASE].m_Valid = true;
+		} else {
+			m_Doors[Index-DOOR_BASE].m_TmpEnd = Pos;
+			m_Doors[Index-DOOR_BASE].m_Circle = false;
+		}
+	}
+	else if(Index >= DOOR_BASE+16 && Index < DOOR_BASE+32) {
+		int doorno = Index-DOOR_BASE-16;
+		if(m_Doors[doorno].m_PosCount < 126) {
+			m_Doors[doorno].m_TmpPos[m_Doors[doorno].m_PosCount++] = Pos;
+		}
+	}
+	else if(Index >= DOOR_BASE+32 && Index < DOOR_BASE+48) {
+		int doorno = Index-DOOR_BASE-32;
+		int idx = m_Doors[doorno].m_APosCount++;
+		m_Doors[doorno].m_APos[idx] = Pos;
 	}
 
 	if(Type != -1)
@@ -218,6 +242,9 @@ void IGameController::StartRound()
 	m_aTeamscore[TEAM_BLUE] = 0;
 	m_ForceBalanced = false;
 	Server()->DemoRecorder_HandleAutoStart();
+	for(int i = 0; i < DOORS_NUM; i++){
+		SetDoor(i, true);
+	}
 	char aBuf[256];
 	str_format(aBuf, sizeof(aBuf), "start round type='%s' teamplay='%d'", m_pGameType, m_GameFlags&GAMEFLAG_TEAMS);
 	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
@@ -731,4 +758,79 @@ int IGameController::ClampTeam(int Team)
 	if(IsTeamplay())
 		return Team&1;
 	return 0;
+}
+
+void IGameController::InitDoors()
+{
+	//Initialize the doors
+	for(int doorno = 0; doorno < DOORS_NUM; doorno++) {
+		if(!m_Doors[doorno].m_Valid)
+			continue;
+		m_Doors[doorno].m_Pos[0] = m_Doors[doorno].m_TmpStart;
+		for(int i = 0; i < m_Doors[doorno].m_PosCount; i++) {
+			int dist = -1;
+			for(int j = 0; j < m_Doors[doorno].m_PosCount; j++) {
+				if(m_Doors[doorno].m_Mark[j])
+					continue;
+				if(dist < 0)
+					dist = j;
+				else {
+					float olddist = distance(m_Doors[doorno].m_TmpPos[dist], m_Doors[doorno].m_Pos[i]);
+					float newdist = distance(m_Doors[doorno].m_TmpPos[j], m_Doors[doorno].m_Pos[i]);
+					if(newdist < olddist) dist = j;
+				}
+			}
+			m_Doors[doorno].m_Pos[i+1] = m_Doors[doorno].m_TmpPos[dist];
+			m_Doors[doorno].m_Mark[dist] = true;
+		}
+
+		m_Doors[doorno].m_PosCount += 2;
+		m_Doors[doorno].m_Pos[m_Doors[doorno].m_PosCount-1] = m_Doors[doorno].m_TmpEnd;
+	}
+
+	//Initialize the lights
+	for(int doorno = 0; doorno < DOORS_NUM; doorno++) {
+		for(int j = 0; j < m_Doors[doorno].m_PosCount-1; j++) {
+			vec2 from=m_Doors[doorno].m_Pos[j];
+			vec2 to  =m_Doors[doorno].m_Pos[j+1];
+			if(j==0 && !m_Doors[doorno].m_Circle)
+				from = from - normalize(to-from)*17;
+
+			if(j==m_Doors[doorno].m_PosCount-2 && !m_Doors[doorno].m_Circle)
+				to = to + normalize(to-from)*17;
+			m_Doors[doorno].m_Light[j] = new CLight(&GameServer()->m_World, from, to);
+			m_Doors[doorno].m_Light[j]->m_KeepPoints = true;
+		}
+		for(int idx = 0; idx < m_Doors[doorno].m_APosCount; idx++) {
+			m_Doors[doorno].m_ALight[idx][0] = new CLight(&GameServer()->m_World, m_Doors[doorno].m_APos[idx], m_Doors[doorno].m_APos[idx]);
+			m_Doors[doorno].m_ALight[idx][1] = new CLight(&GameServer()->m_World, vec2(m_Doors[doorno].m_APos[idx].x-15,m_Doors[doorno].m_APos[idx].y),  vec2(m_Doors[doorno].m_APos[idx].x,m_Doors[doorno].m_APos[idx].y-15));
+			m_Doors[doorno].m_ALight[idx][2] = new CLight(&GameServer()->m_World, vec2(m_Doors[doorno].m_APos[idx].x,m_Doors[doorno].m_APos[idx].y-15),  vec2(m_Doors[doorno].m_APos[idx].x+15,m_Doors[doorno].m_APos[idx].y));
+			m_Doors[doorno].m_ALight[idx][3] = new CLight(&GameServer()->m_World, vec2(m_Doors[doorno].m_APos[idx].x+15,m_Doors[doorno].m_APos[idx].y),  vec2(m_Doors[doorno].m_APos[idx].x,m_Doors[doorno].m_APos[idx].y+15));
+			m_Doors[doorno].m_ALight[idx][4] = new CLight(&GameServer()->m_World, vec2(m_Doors[doorno].m_APos[idx].x,m_Doors[doorno].m_APos[idx].y+15),  vec2(m_Doors[doorno].m_APos[idx].x-15,m_Doors[doorno].m_APos[idx].y));
+		}
+	}
+	for(int i = 0; i < DOORS_NUM; i++)
+		SetDoor(i, true);
+}
+
+
+bool IGameController::GetDoor(int idx)
+{
+	return m_Doors[idx].m_Act;
+}
+
+void IGameController::SetDoor(int idx, bool active)
+{
+	if(!m_Doors[idx].m_Valid)
+		return;
+	m_Doors[idx].m_Act = active;
+
+	for(int i = 0; i < m_Doors[idx].m_APosCount; i++) {
+		for(int j = 1; j < 5; j++) {
+			m_Doors[idx].m_ALight[i][j]->m_Visible = active;
+		}
+	}
+	for(int i = 0; i < m_Doors[idx].m_PosCount-1; i++) {
+		m_Doors[idx].m_Light[i]->m_Visible = active;
+	}
 }

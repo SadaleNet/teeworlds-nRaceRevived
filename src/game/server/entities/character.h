@@ -143,6 +143,9 @@ private:
 	CCharacterCore m_SendCore; // core that we should send
 	CCharacterCore m_ReckoningCore; // the dead reckoning core
 
+	bool m_DoorStuck;
+	bool IsHittingDoor();
+
 };
 
 #endif

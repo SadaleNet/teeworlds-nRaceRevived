@@ -1529,6 +1529,7 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 		}
 	}
 
+	m_pController->InitDoors();
 	//game.world.insert_entity(game.Controller);
 
 #ifdef CONF_DEBUG

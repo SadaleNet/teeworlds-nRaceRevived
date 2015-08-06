@@ -79,6 +79,7 @@ bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 	GameServer()->m_pController->OnCharacterSpawn(this);
 
 	m_RaceStarted = false;
+	m_DoorStuck = false;
 
 	return true;
 }
@@ -575,6 +576,20 @@ void CCharacter::Tick()
 			m_Armor++;
 	}
 
+	//handle doors
+	for(int i = 0; i < GameServer()->m_pController->DOORS_NUM; i++)
+	{
+		for(int j = 0; j < GameServer()->m_pController->m_Doors[i].m_APosCount; j++)
+		{
+			if(distance(m_Pos, GameServer()->m_pController->m_Doors[i].m_APos[j]) < 30.0f && Server()->Tick()-GameServer()->m_pController->m_Doors[i].m_ChangeTick > 50)
+			{
+				GameServer()->m_pController->m_Doors[i].m_ChangeTick = Server()->Tick();
+				GameServer()->m_pController->SetDoor(i, !GameServer()->m_pController->GetDoor(i));
+				GameServer()->CreateSound(m_Pos, SOUND_WEAPON_NOAMMO);
+			}
+		}
+	}
+
 	//handle tiles
 	int tileId = GameServer()->Collision()->GetCollisionIdAt(m_Pos.x, m_Pos.y);
 
@@ -688,7 +703,7 @@ void CCharacter::Tick()
 			GameServer()->SendChat(-1, CGameContext::CHAT_ALL, buf);
 
 			/*TODO: unimplemented score.cpp
-			PLAYER_SCORE *pscore = ((GAMECONTROLLER_RACE*)game.controller)->score.search_score(player->client_id, 0, 0);
+			PLAYER_SCORE *pscore = ((GAMECONTROLLER_RACE*)GameServer()->m_pController)->score.search_score(player->client_id, 0, 0);
 			if(pscore && raceTime - pscore->score < 0)
 			{
 				str_format(buf, sizeof(buf), "New record: %5.3f second(s) better", raceTime - pscore->score);
@@ -702,7 +717,7 @@ void CCharacter::Tick()
 
 			/*TODO: unimplemented player.cpp save_x save_y diff
 			if(strncmp(Server()->ClientName(m_pPlayer->GetCID()), "nameless tee", 12) != 0)
-				((GAMECONTROLLER_RACE*)game.controller)->score.parsePlayer(m_pPlayer->GetCID(), (float)raceTime, m_CpCurrent, m_pPlayer->m_SaveX, m_pPlayer->m_SaveY, m_pPlayer->m_diff);*/
+				((GAMECONTROLLER_RACE*)GameServer()->m_pController)->score.parsePlayer(m_pPlayer->GetCID(), (float)raceTime, m_CpCurrent, m_pPlayer->m_SaveX, m_pPlayer->m_SaveY, m_pPlayer->m_diff);*/
 		}
 	}else if(tileId>=CCollision::COLID_TELEPORT_BEGIN&&tileId<=CCollision::COLID_TELEPORT_END){
 		int teleportId = (tileId-CCollision::COLID_TELEPORT_BEGIN)/2;
@@ -744,7 +759,7 @@ void CCharacter::Tick()
 		if(m_CpActive && m_CpTick > Server()->Tick())
 		{
 			/*TODO: unimplemented score.cpp
-			PLAYER_SCORE *pscore = ((GAMECONTROLLER_RACE*)game.controller)->score.search_score(player->client_id, 0, 0);
+			PLAYER_SCORE *pscore = ((GAMECONTROLLER_RACE*)GameServer()->m_pController)->score.search_score(player->client_id, 0, 0);
 			if(pscore && pscore->cp_time[cp_active] != 0)
 			{
 				char tmp[128];
@@ -783,6 +798,23 @@ void CCharacter::TickDefered()
 	bool StuckBefore = GameServer()->Collision()->TestBox(m_Core.m_Pos, vec2(28.0f, 28.0f));
 
 	m_Core.Move();
+
+	if(IsHittingDoor())
+	{
+		m_Core.m_Pos = StartPos;
+		m_Core.m_Vel = vec2(0,0);
+
+		if(m_Core.m_Jumped >= 2)
+			m_Core.m_Jumped = 1;
+		if(!m_DoorStuck)
+		{
+			GameServer()->SendEmoticon(m_pPlayer->GetCID(), 11);
+			m_DoorStuck = true;
+		}
+	}else{
+		m_DoorStuck = false;
+	}
+
 	bool StuckAfterMove = GameServer()->Collision()->TestBox(m_Core.m_Pos, vec2(28.0f, 28.0f));
 	m_Core.Quantize();
 	bool StuckAfterQuant = GameServer()->Collision()->TestBox(m_Core.m_Pos, vec2(28.0f, 28.0f));
@@ -1072,4 +1104,41 @@ void CCharacter::Snap(int SnappingClient)
 	}
 
 	pCharacter->m_PlayerFlags = GetPlayer()->m_PlayerFlags;
+}
+
+float PointDistance(vec2 point, vec2 line_start, vec2 line_end)
+{
+	float res = -1.0f;
+	vec2 dir = normalize(line_end-line_start);
+	for(int i = 0; i < length(line_end-line_start); i++)
+	{
+		vec2 step = dir;
+		step.x *= i;
+		step.y *= i;
+		float dist = distance(step+line_start, point);
+		if(res < 0 || dist < res)
+			res = dist;
+	}
+	return res;
+}
+
+bool CCharacter::IsHittingDoor()
+{
+	bool done = false;
+	for(int i = 0; i < 16 && !done; i++)
+	{
+		if(!GameServer()->m_pController->m_Doors[i].m_Valid)
+			continue;
+		if(!GameServer()->m_pController->GetDoor(i))
+			continue;
+		for(int j = 0; j < GameServer()->m_pController->m_Doors[i].m_PosCount-1; j++)
+		{
+			if(PointDistance(m_Core.m_Pos, GameServer()->m_pController->m_Doors[i].m_Pos[j], GameServer()->m_pController->m_Doors[i].m_Pos[j+1]) < 30.0f)
+			{
+				done = true;
+				break;
+			}
+		}
+	}
+	return done;
 }
