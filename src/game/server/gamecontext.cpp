@@ -1466,6 +1466,32 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("clear_votes", "", CFGFLAG_SERVER, ConClearVotes, this, "Clears the voting options");
 	Console()->Register("vote", "r", CFGFLAG_SERVER, ConVote, this, "Force a vote to yes/no");
 
+	Console()->Register("tele_all", "i", CFGFLAG_SERVER, ConTeleportAll, this, "");
+	Console()->Register("teleport_all", "i", CFGFLAG_SERVER, ConTeleportAll, this, "");
+	Console()->Register("tele", "ii", CFGFLAG_SERVER, ConTeleport, this, "");
+	Console()->Register("teleport", "ii", CFGFLAG_SERVER, ConTeleport, this, "");
+	Console()->Register("tele_to", "iii", CFGFLAG_SERVER, ConTeleportTo, this, "");
+	Console()->Register("teleport_to", "iii", CFGFLAG_SERVER, ConTeleportTo, this, "");
+	Console()->Register("tele_num", "ii", CFGFLAG_SERVER, ConTeleportNum, this, "");
+	Console()->Register("teleport_num", "ii", CFGFLAG_SERVER, ConTeleportNum, this, "");
+
+	Console()->Register("get_pos", "i", CFGFLAG_SERVER, ConGetPos, this, "");
+	Console()->Register("pos", "i", CFGFLAG_SERVER, ConGetPos, this, "");
+
+	Console()->Register("kill_pl", "i", CFGFLAG_SERVER, ConKillPl, this, "");
+	Console()->Register("kill_all", "", CFGFLAG_SERVER, ConKillAll, this, "");
+
+	Console()->Register("kick_all", "", CFGFLAG_SERVER, ConKickAll, this, "");
+	Console()->Register("ban_all", "i", CFGFLAG_SERVER, ConBanAll, this, "");
+
+	Console()->Register("wlist_add", "i", CFGFLAG_SERVER, ConWlistAdd, this, "");
+	Console()->Register("wlist_remove", "i", CFGFLAG_SERVER, ConWlistRemove, this, "");
+	Console()->Register("wlist_remove_name", "s", CFGFLAG_SERVER, ConWlistRemoveName, this, "");
+	Console()->Register("wlist_check", "i", CFGFLAG_SERVER, ConWlistCheck, this, "");
+	Console()->Register("wlist_show", "", CFGFLAG_SERVER, ConWlistShow, this, "");
+
+	Console()->Register("switch_door", "i", CFGFLAG_SERVER, ConSwitchDoor, this, "");
+
 	Console()->Chain("sv_motd", ConchainSpecialMotdupdate, this);
 }
 
@@ -1500,7 +1526,7 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 
 	// setup core world
 	//for(int i = 0; i < MAX_CLIENTS; i++)
-	//	game.players[i].core.world = &game.world.core;
+	//	m_apPlayers[i].core.world = &game.world.core;
 
 	// create all entities from the game layer
 	CMapItemLayerTilemap *pTileMap = m_Layers.GameLayer();
@@ -1594,3 +1620,239 @@ const char *CGameContext::Version() { return GAME_VERSION; }
 const char *CGameContext::NetVersion() { return GAME_NETVERSION; }
 
 IGameServer *CreateGameServer() { return new CGameContext; }
+
+
+void CGameContext::ConTeleportAll(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	int cid = clamp(pResult->GetInteger(0), 0, (int)MAX_CLIENTS-1);
+
+	if(!pSelf->m_apPlayers[cid])
+		return;
+
+	for (int i = 0; i < MAX_CLIENTS; i++)
+	{
+		if(pSelf->m_apPlayers[i])
+		{
+			CCharacter* chr = pSelf->m_apPlayers[i]->GetCharacter();
+			if(chr)
+			{
+				chr->m_Core.m_Pos = pSelf->m_apPlayers[cid]->m_ViewPos;
+				chr->m_StartTime = pSelf->m_apPlayers[cid]->GetCharacter()->m_StartTime;
+			}
+		}
+	}
+
+	char buf[128];
+	str_format(buf, sizeof(buf), "All players teleported to player:");
+	pSelf->SendChat(-1, CHAT_ALL, buf);
+	str_format(buf, sizeof(buf), "'%s'", pSelf->Server()->ClientName(cid));
+	pSelf->SendChat(-1, CHAT_ALL, buf);
+}
+
+void CGameContext::ConTeleport(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+ 	int cid1 = clamp(pResult->GetInteger(0), 0, (int)MAX_CLIENTS-1);
+ 	int cid2 = clamp(pResult->GetInteger(1), 0, (int)MAX_CLIENTS-1);
+	if(pSelf->m_apPlayers[cid1] && pSelf->m_apPlayers[cid2])
+	{
+		CCharacter* chr = pSelf->m_apPlayers[cid1]->GetCharacter();
+		if(chr)
+		{
+			chr->m_Core.m_Pos = pSelf->m_apPlayers[cid2]->m_ViewPos;
+			chr->m_RaceStarted = false;;
+		}
+	}
+}
+
+void CGameContext::ConTeleportTo(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	int cid = clamp(pResult->GetInteger(0), 0, (int)MAX_CLIENTS-1);
+	if(pSelf->m_apPlayers[cid])
+	{
+		CCharacter* chr = pSelf->m_apPlayers[cid]->GetCharacter();
+		if(chr)
+		{
+			chr->m_Core.m_Pos.x = pResult->GetInteger(1);
+			chr->m_Core.m_Pos.y = pResult->GetInteger(2);
+			chr->m_RaceStarted = false;;
+		}
+	}
+}
+
+void CGameContext::ConTeleportNum(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	int cid = clamp(pResult->GetInteger(0), 0, (int)MAX_CLIENTS-1);
+	if(pSelf->m_apPlayers[cid])
+	{
+		CCharacter* chr = pSelf->m_apPlayers[cid]->GetCharacter();
+		int index = pResult->GetInteger(1);
+
+		if(chr && index >= 1 && index <= (CCollision::COLID_TELEPORT_END-CCollision::COLID_TELEPORT_BEGIN+1)/2)
+		{
+			vec2 tmp = pSelf->m_Collision.GetTeleportDestination(index-1);
+			if(tmp == vec2(0, 0))
+				return;
+
+			chr->m_Core.m_Pos = tmp;
+			chr->m_RaceStarted = false;;
+		}
+	}
+}
+
+void CGameContext::ConGetPos(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	int cid = clamp(pResult->GetInteger(0), 0, (int)MAX_CLIENTS-1);
+	if(pSelf->m_apPlayers[cid]){
+		char aBuf[512];
+		str_format(aBuf, sizeof(aBuf), "%s pos: %d @ %d", pSelf->Server()->ClientName(cid), (int)pSelf->m_apPlayers[cid]->m_ViewPos.x, (int)pSelf->m_apPlayers[cid]->m_ViewPos.y);
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "Tele", aBuf);
+	}
+}
+
+
+void CGameContext::ConKillPl(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	int cid = clamp(pResult->GetInteger(0), 0, (int)MAX_CLIENTS-1);
+	if(!pSelf->m_apPlayers[cid])
+		return;
+		
+	pSelf->m_apPlayers[cid]->GetCharacter()->Die(-1, WEAPON_GAME);
+	char buf[512];
+	str_format(buf, sizeof(buf), "%s Killed by admin", pSelf->Server()->ClientName(cid));
+	pSelf->SendChat(-1, CHAT_ALL, buf);
+}
+
+void CGameContext::ConKillAll(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	for (int i = 0; i < MAX_CLIENTS; i++)
+		if(pSelf->m_apPlayers[i])
+			pSelf->m_apPlayers[i]->GetCharacter()->Die(-1, WEAPON_GAME);
+
+	char buf[128];
+	str_format(buf, sizeof(buf), "All players killed by admin");
+	pSelf->SendChat(-1, CHAT_ALL, buf);
+}
+
+void CGameContext::ConBanAll(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	int min = clamp(pResult->GetInteger(0), 0, (int)MAX_CLIENTS-1);
+	
+	char cmd[512]; 
+
+	for (int i = 0; i < MAX_CLIENTS; i++)
+	{
+		if(pSelf->m_apPlayers[i] /*&& !is_wlist(i)*/)
+		{
+			str_format(cmd, sizeof(cmd), "ban %d %d", i, min);
+			pSelf->Console()->ExecuteLine(cmd);
+		}
+	}
+
+	char buf[128];
+	str_format(buf, sizeof(buf), "All players banned by admin");
+	pSelf->SendChat(-1, CHAT_ALL, buf);
+}
+
+void CGameContext::ConKickAll(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	for (int i = 0; i < MAX_CLIENTS; i++)
+		if(pSelf->m_apPlayers[i])
+			pSelf->Server()->Kick(i, "You was kicked by 'kick_all'");
+
+	char buf[128];
+	str_format(buf, sizeof(buf), "All players are kicked.");
+	pSelf->SendChat(-1, CHAT_ALL, buf);
+}
+
+void CGameContext::ConWlistAdd(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	int cid = clamp(pResult->GetInteger(0), 0, (int)MAX_CLIENTS-1);
+	//TODO: wlist
+	/*if(pSelf->m_apPlayers[cid])
+		wlist_add(cid);*/
+	char aBuf[512];
+	str_format(aBuf, sizeof(aBuf), "User %d:%s is now whitelisted!", cid, pSelf->Server()->ClientName(cid));
+	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
+}
+
+void CGameContext::ConWlistRemove(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	int cid = clamp(pResult->GetInteger(0), 0, (int)MAX_CLIENTS-1);
+	//TODO: wlist
+	/*if(pSelf->m_apPlayers[cid])
+		wlist_remove(pSelf->Server()->ClientName(cid));*/
+
+	char aBuf[512];
+	str_format(aBuf, sizeof(aBuf), "User %d:%s is not longer whitelisted!", cid, pSelf->Server()->ClientName(cid) );
+	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
+}
+
+void CGameContext::ConWlistRemoveName(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	//TODO: wlist
+	//wlist_remove(pResult->GetString(0));
+
+	char aBuf[512];
+	str_format(aBuf, sizeof(aBuf), "User %s is not longer whitelisted!", pResult->GetString(0) );
+	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
+}
+
+void CGameContext::ConWlistCheck(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	int cid = clamp(pResult->GetInteger(0), 0, (int)MAX_CLIENTS-1);
+	if(pSelf->m_apPlayers[cid])
+	{
+		char aBuf[512];
+		//TODO: wlist
+		/*if(is_wlist(cid))
+			str_format(aBuf, sizeof(aBuf), "User %d:%s is whitelisted!", cid, pSelf->Server()->ClientName(cid) );
+		else
+			str_format(aBuf, sizeof(aBuf), "User %d:%s is !NOT! whitelisted!", cid, pSelf->Server()->ClientName(cid));
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);*/
+	}
+}
+
+void CGameContext::ConWlistShow(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	//TODO: wlist
+	//wlist_show();
+}
+
+void CGameContext::ConSwitchDoor(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	int index = pResult->GetInteger(0)-1;
+
+	char aBuf[512];
+	if (index > -1 && index < 16)
+	{
+		if(!pSelf->m_pController->m_Doors[index].m_Valid)
+		{
+			str_format(aBuf, sizeof(aBuf), "Door %d => invalid!", index+1 );
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "Door", aBuf);
+			return;
+		}
+
+		pSelf->m_pController->SetDoor(index, !pSelf->m_pController->GetDoor(index));
+		str_format(aBuf, sizeof(aBuf), "Door %d => %s!", index+1, (pSelf->m_pController->GetDoor(index) ? "locked" : "unlocked") );
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "Door", aBuf);
+	}
+	else{
+		str_format(aBuf, sizeof(aBuf), "Door %d => invalid!", index+1 );
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "Door", aBuf);
+	}
+}

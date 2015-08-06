@@ -65,6 +65,22 @@ class CGameContext : public IGameServer
 	static void ConVote(IConsole::IResult *pResult, void *pUserData);
 	static void ConchainSpecialMotdupdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 
+	static void ConTeleportAll(IConsole::IResult *pResult, void *pUserData);
+	static void ConTeleport(IConsole::IResult *pResult, void *pUserData);
+	static void ConTeleportTo(IConsole::IResult *pResult, void *pUserData);
+	static void ConTeleportNum(IConsole::IResult *pResult, void *pUserData);
+	static void ConGetPos(IConsole::IResult *pResult, void *pUserData);
+	static void ConKillPl(IConsole::IResult *pResult, void *pUserData);
+	static void ConKillAll(IConsole::IResult *pResult, void *pUserData);
+	static void ConKickAll(IConsole::IResult *pResult, void *pUserData);
+	static void ConBanAll(IConsole::IResult *pResult, void *pUserData);
+	static void ConWlistAdd(IConsole::IResult *pResult, void *pUserData);
+	static void ConWlistRemove(IConsole::IResult *pResult, void *pUserData);
+	static void ConWlistRemoveName(IConsole::IResult *pResult, void *pUserData);
+	static void ConWlistCheck(IConsole::IResult *pResult, void *pUserData);
+	static void ConWlistShow(IConsole::IResult *pResult, void *pUserData);
+	static void ConSwitchDoor(IConsole::IResult *pResult, void *pUserData);
+
 	CGameContext(int Resetting);
 	void Construct(int Resetting);
 

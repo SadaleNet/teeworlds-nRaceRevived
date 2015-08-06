@@ -146,6 +146,7 @@ private:
 	bool m_DoorStuck;
 	bool IsHittingDoor();
 
+	friend class CGameContext;
 };
 
 #endif
