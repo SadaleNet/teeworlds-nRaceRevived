@@ -124,7 +124,7 @@ private:
 	// checkpoints
 	int m_CpTick;
 	int m_CpActive;
-	float m_CpCurrent[CCollision::COLID_TELEPORT_END-CCollision::COLID_TELEPORT_BEGIN];
+	float m_CpCurrent[(CCollision::COLID_TELEPORT_END-CCollision::COLID_TELEPORT_BEGIN+1)/2];
 
 	// ninja
 	struct
