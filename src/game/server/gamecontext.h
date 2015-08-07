@@ -3,6 +3,8 @@
 #ifndef GAME_SERVER_GAMECONTEXT_H
 #define GAME_SERVER_GAMECONTEXT_H
 
+#include <string>
+#include <vector>
 #include <engine/server.h>
 #include <engine/console.h>
 #include <engine/shared/memheap.h>
@@ -85,6 +87,19 @@ class CGameContext : public IGameServer
 	void Construct(int Resetting);
 
 	bool m_Resetting;
+
+	struct WlistEntity{
+		std::string m_UserName, m_IPPart;
+	};
+	std::vector<WlistEntity> m_WlistEntities;
+	void WlistStripIp(char* Ip, size_t size);
+	void WlistSave();
+	void WlistAdd(int ClientID);
+	void WlistRemove(const char* Name);
+	void WlistLoad();
+	void WlistShow();
+	bool IsWlist(int ClientID);
+
 public:
 	IServer *Server() const { return m_pServer; }
 	class IConsole *Console() { return m_pConsole; }

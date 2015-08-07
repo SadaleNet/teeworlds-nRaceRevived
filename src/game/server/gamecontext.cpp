@@ -1,6 +1,7 @@
 /* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include <new>
+#include <fstream>
 #include <string.h>
 #include <base/math.h>
 #include <engine/shared/config.h>
@@ -11,7 +12,7 @@
 #include <game/collision.h>
 #include <game/gamecore.h>
 #include "gamemodes/mod.h"
-#include "wlist.h"
+#include <fstream>
 
 enum
 {
@@ -716,7 +717,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 
 					SendChatTarget(ClientID, buf);
 				}else if((!str_comp_nocase(pMsg->m_pMessage, ".save") || !str_comp_nocase(pMsg->m_pMessage, "!save") || !str_comp_nocase(pMsg->m_pMessage, "/save") || !str_comp_nocase(pMsg->m_pMessage, "+save")) && pPlayer->GetCharacter() != 0){
-					if (is_wlist(ClientID))
+					if (IsWlist(ClientID))
 					{
 						CCharacter* chr = pPlayer->GetCharacter();
 						int _x = pPlayer->m_ViewPos.x;
@@ -735,7 +736,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					else
 						SendChatTarget(ClientID, "Not whitelisted!");
 				}else if((!str_comp_nocase(pMsg->m_pMessage, ".load") || !str_comp_nocase(pMsg->m_pMessage, "!load") || !str_comp_nocase(pMsg->m_pMessage, "/load") || !str_comp_nocase(pMsg->m_pMessage, "+load")) && pPlayer->GetCharacter() != 0){
-					if (is_wlist(ClientID))
+					if (IsWlist(ClientID))
 					{
   						CCharacter* chr = pPlayer->GetCharacter();
   						int save_x = pPlayer->m_SaveX;
@@ -1678,6 +1679,8 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 		}
 	}
 #endif
+
+	WlistLoad();
 }
 
 void CGameContext::OnShutdown()
@@ -1860,7 +1863,7 @@ void CGameContext::ConBanAll(IConsole::IResult *pResult, void *pUserData)
 
 	for (int i = 0; i < MAX_CLIENTS; i++)
 	{
-		if(pSelf->m_apPlayers[i] && !is_wlist(i))
+		if(pSelf->m_apPlayers[i] && !pSelf->IsWlist(i))
 		{
 			str_format(cmd, sizeof(cmd), "ban %d %d", i, min);
 			pSelf->Console()->ExecuteLine(cmd);
@@ -1890,7 +1893,7 @@ void CGameContext::ConWlistAdd(IConsole::IResult *pResult, void *pUserData)
 	int cid = clamp(pResult->GetInteger(0), 0, (int)MAX_CLIENTS-1);
 
 	if(pSelf->m_apPlayers[cid])
-		wlist_add(cid);
+		pSelf->WlistAdd(cid);
 	char aBuf[512];
 	str_format(aBuf, sizeof(aBuf), "User %d:%s is now whitelisted!", cid, pSelf->Server()->ClientName(cid));
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
@@ -1902,7 +1905,7 @@ void CGameContext::ConWlistRemove(IConsole::IResult *pResult, void *pUserData)
 	int cid = clamp(pResult->GetInteger(0), 0, (int)MAX_CLIENTS-1);
 
 	if(pSelf->m_apPlayers[cid])
-		wlist_remove(pSelf->Server()->ClientName(cid));
+		pSelf->WlistRemove(pSelf->Server()->ClientName(cid));
 
 	char aBuf[512];
 	str_format(aBuf, sizeof(aBuf), "User %d:%s is not longer whitelisted!", cid, pSelf->Server()->ClientName(cid) );
@@ -1913,7 +1916,7 @@ void CGameContext::ConWlistRemoveName(IConsole::IResult *pResult, void *pUserDat
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 
-	wlist_remove(pResult->GetString(0));
+	pSelf->WlistRemove(pResult->GetString(0));
 
 	char aBuf[512];
 	str_format(aBuf, sizeof(aBuf), "User %s is not longer whitelisted!", pResult->GetString(0) );
@@ -1927,7 +1930,7 @@ void CGameContext::ConWlistCheck(IConsole::IResult *pResult, void *pUserData)
 	if(pSelf->m_apPlayers[cid])
 	{
 		char aBuf[512];
-		if(is_wlist(cid))
+		if(pSelf->IsWlist(cid))
 			str_format(aBuf, sizeof(aBuf), "User %d:%s is whitelisted!", cid, pSelf->Server()->ClientName(cid) );
 		else
 			str_format(aBuf, sizeof(aBuf), "User %d:%s is !NOT! whitelisted!", cid, pSelf->Server()->ClientName(cid));
@@ -1938,7 +1941,7 @@ void CGameContext::ConWlistCheck(IConsole::IResult *pResult, void *pUserData)
 void CGameContext::ConWlistShow(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	wlist_show();
+	pSelf->WlistShow();
 }
 
 void CGameContext::ConSwitchDoor(IConsole::IResult *pResult, void *pUserData)
@@ -1964,4 +1967,96 @@ void CGameContext::ConSwitchDoor(IConsole::IResult *pResult, void *pUserData)
 		str_format(aBuf, sizeof(aBuf), "Door %d => invalid!", index+1 );
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "Door", aBuf);
 	}
+}
+
+void CGameContext::WlistStripIp(char* Ip, size_t size){
+	int count = 0;
+	for(size_t i=0; i<strlen(Ip); i++)
+	{
+		if(Ip[i]==':'||Ip[i]=='.')
+		{
+			count++;
+			if(count==2){
+				Ip[i] = '\0';
+				break;
+			}
+		}
+	}
+}
+
+void CGameContext::WlistSave(){
+	std::fstream f(g_Config.m_SvWhitelist, std::ios_base::out);
+	if(!f)
+		return;
+	for(unsigned int i=0; i<m_WlistEntities.size(); i++)
+		f << m_WlistEntities[i].m_UserName << std::endl << m_WlistEntities[i].m_IPPart << std::endl;
+}
+
+void CGameContext::WlistAdd(int ClientID){
+	const char* clientName = Server()->ClientName(ClientID);
+	char ipPart[256];
+	Server()->GetClientAddr(ClientID, ipPart, sizeof(ipPart));
+	WlistStripIp(ipPart, sizeof(ipPart));
+
+	WlistEntity wlistEntity;
+	wlistEntity.m_UserName = clientName;
+	wlistEntity.m_IPPart = ipPart;
+	m_WlistEntities.push_back(wlistEntity);
+	WlistSave();
+}
+
+void CGameContext::WlistRemove(const char* Name){
+	for(unsigned int i=0; i<m_WlistEntities.size(); i++)
+	{
+		if(!strcmp(m_WlistEntities[i].m_UserName.c_str(), Name))
+		{
+			m_WlistEntities.erase(m_WlistEntities.begin()+i);
+			i--;
+		}
+	}
+	WlistSave();
+}
+
+void CGameContext::WlistLoad(){
+	m_WlistEntities.clear();
+	std::fstream f(g_Config.m_SvWhitelist, std::ios_base::in);
+	if(!f)
+		return;
+	while(!f.eof())
+	{
+		WlistEntity wlistEntity;
+		f.peek();
+		if(f.eof())
+			break;
+		std::getline(f, wlistEntity.m_UserName);
+		std::getline(f, wlistEntity.m_IPPart);
+		m_WlistEntities.push_back(wlistEntity);
+	}
+}
+
+void CGameContext::WlistShow(){
+	char aBuf[256];
+	Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "Whitelisted users:");
+	for(unsigned int i=0; i<m_WlistEntities.size(); i++)
+	{
+		str_format(aBuf, sizeof(aBuf), "User: %s", m_WlistEntities[i].m_UserName.c_str());
+		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
+		str_format(aBuf, sizeof(aBuf), "IP..: %s", m_WlistEntities[i].m_IPPart.c_str());
+		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
+		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "-------------");
+	}
+}
+
+bool CGameContext::IsWlist(int ClientID){
+	const char* clientName = Server()->ClientName(ClientID);
+	char ipPart[256];
+	Server()->GetClientAddr(ClientID, ipPart, sizeof(ipPart));
+	WlistStripIp(ipPart, sizeof(ipPart));
+
+	for(unsigned int i=0; i<m_WlistEntities.size(); i++)
+	{
+		if(!strcmp(m_WlistEntities[i].m_UserName.c_str(), clientName) && !strcmp(m_WlistEntities[i].m_IPPart.c_str(), ipPart))
+			return true;
+	}
+	return false;
 }
