@@ -1,6 +1,7 @@
 /* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include <new>
+#include <string.h>
 #include <engine/shared/config.h>
 #include <game/server/gamecontext.h>
 #include <game/mapitems.h>
@@ -702,22 +703,20 @@ void CCharacter::Tick()
 				str_format(buf, sizeof(buf), "%s finished in: %5.3f second(s)", Server()->ClientName(m_pPlayer->GetCID()), raceTime-((int)raceTime/60*60));
 			GameServer()->SendChat(-1, CGameContext::CHAT_ALL, buf);
 
-			/*TODO: unimplemented score.cpp
-			PLAYER_SCORE *pscore = ((GAMECONTROLLER_RACE*)GameServer()->m_pController)->score.search_score(player->client_id, 0, 0);
-			if(pscore && raceTime - pscore->score < 0)
+			PlayerScore *pscore = GameServer()->m_pController->m_Score.SearchScore(m_pPlayer->GetCID(), 0, 0);
+			if(pscore && raceTime - pscore->m_Score < 0)
 			{
-				str_format(buf, sizeof(buf), "New record: %5.3f second(s) better", raceTime - pscore->score);
-				game.send_chat(-1, GAMECONTEXT::CHAT_ALL, buf);
+				str_format(buf, sizeof(buf), "New record: %5.3f second(s) better", raceTime - pscore->m_Score);
+				GameServer()->SendChat(-1, CGameContext::CHAT_ALL, buf);
 			}
 
-			if(raceTime < player->score || !player->score)
-				player->score = (int)raceTime;*/
+			if(raceTime < m_pPlayer->m_Score || !m_pPlayer->m_Score)
+				m_pPlayer->m_Score = (int)raceTime;
 
 			m_RaceStarted = false;
 
-			/*TODO: unimplemented player.cpp save_x save_y diff
 			if(strncmp(Server()->ClientName(m_pPlayer->GetCID()), "nameless tee", 12) != 0)
-				((GAMECONTROLLER_RACE*)GameServer()->m_pController)->score.parsePlayer(m_pPlayer->GetCID(), (float)raceTime, m_CpCurrent, m_pPlayer->m_SaveX, m_pPlayer->m_SaveY, m_pPlayer->m_diff);*/
+				GameServer()->m_pController->m_Score.ParsePlayer(m_pPlayer->GetCID(), (float)raceTime, m_CpCurrent, m_pPlayer->m_SaveX, m_pPlayer->m_SaveY, m_pPlayer->m_Diff);
 		}
 	}else if(tileId>=CCollision::COLID_TELEPORT_BEGIN&&tileId<=CCollision::COLID_TELEPORT_END){
 		int teleportId = (tileId-CCollision::COLID_TELEPORT_BEGIN)/2;
@@ -758,15 +757,14 @@ void CCharacter::Tick()
 
 		if(m_CpActive && m_CpTick > Server()->Tick())
 		{
-			/*TODO: unimplemented score.cpp
-			PLAYER_SCORE *pscore = ((GAMECONTROLLER_RACE*)GameServer()->m_pController)->score.search_score(player->client_id, 0, 0);
-			if(pscore && pscore->cp_time[cp_active] != 0)
+			PlayerScore *pscore = GameServer()->m_pController->m_Score.SearchScore(m_pPlayer->GetCID(), 0, 0);
+			if(pscore && pscore->m_CpTime[m_CpActive] != 0)
 			{
 				char tmp[128];
-				float diff = cp_current[cp_active] - pscore->cp_time[cp_active];
+				float diff = m_CpCurrent[m_CpActive] - pscore->m_CpTime[m_CpActive];
 				str_format(tmp, sizeof(tmp), "\nCheckpoint | Diff : %s%5.3f", (diff >= 0)?"+":"", diff);
 				strcat(buftime, tmp);
-			}*/
+			}
 		}
 
 		GameServer()->SendBroadcast(buftime, m_pPlayer->GetCID());

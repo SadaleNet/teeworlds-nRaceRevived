@@ -13,7 +13,7 @@
 
 
 IGameController::IGameController(class CGameContext *pGameServer)
-{
+:m_Score(this){
 	m_pGameServer = pGameServer;
 	m_pServer = m_pGameServer->Server();
 	m_pGameType = "unknown";
@@ -564,7 +564,11 @@ void IGameController::Tick()
 		}
 	}
 
-	DoWincheck();
+	if(m_GameOverTick == -1 && !m_Warmup)
+	{
+		if((g_Config.m_SvTimelimit > 0 && (Server()->Tick()-m_RoundStartTick) >= g_Config.m_SvTimelimit*Server()->TickSpeed()*60))
+			EndRound();
+	}
 }
 
 

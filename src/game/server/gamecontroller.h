@@ -4,8 +4,10 @@
 #define GAME_SERVER_GAMECONTROLLER_H
 
 #include <base/vmath.h>
+#include "score.h"
 
 class CLight;
+class Score;
 struct Door
 {
 	Door()
@@ -55,6 +57,7 @@ class IGameController
 
 	class CGameContext *m_pGameServer;
 	class IServer *m_pServer;
+	friend class Score;
 
 protected:
 	CGameContext *GameServer() const { return m_pGameServer; }
@@ -102,6 +105,7 @@ public:
 	const char *m_pGameType;
 	static const int DOORS_NUM = 16;
 	Door m_Doors[DOORS_NUM];
+	Score m_Score;
 
 	bool IsTeamplay() const;
 	bool IsGameOver() const { return m_GameOverTick != -1; }

@@ -1,6 +1,7 @@
 /* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include <new>
+#include <string.h>
 #include <base/math.h>
 #include <engine/shared/config.h>
 #include <engine/map.h>
@@ -10,6 +11,7 @@
 #include <game/collision.h>
 #include <game/gamecore.h>
 #include "gamemodes/mod.h"
+#include "wlist.h"
 
 enum
 {
@@ -36,8 +38,7 @@ void CGameContext::Construct(int Resetting)
 		m_pVoteOptionHeap = new CHeap();
 }
 
-CGameContext::CGameContext(int Resetting)
-{
+CGameContext::CGameContext(int Resetting){
 	Construct(Resetting);
 }
 
@@ -390,7 +391,7 @@ void CGameContext::SwapTeams()
 	if(!m_pController->IsTeamplay())
 		return;
 	
-	SendChat(-1, CGameContext::CHAT_ALL, "Teams were swapped");
+	SendChat(-1, CHAT_ALL, "Teams were swapped");
 
 	for(int i = 0; i < MAX_CLIENTS; ++i)
 	{
@@ -428,7 +429,7 @@ void CGameContext::OnTick()
 		// abort the kick-vote on player-leave
 		if(m_VoteCloseTime == -1)
 		{
-			SendChat(-1, CGameContext::CHAT_ALL, "Vote aborted");
+			SendChat(-1, CHAT_ALL, "Vote aborted");
 			EndVote();
 		}
 		else
@@ -483,7 +484,7 @@ void CGameContext::OnTick()
 				Console()->ExecuteLine(m_aVoteCommand);
 				Server()->SetRconCID(IServer::RCON_CID_SERV);
 				EndVote();
-				SendChat(-1, CGameContext::CHAT_ALL, "Vote passed");
+				SendChat(-1, CHAT_ALL, "Vote passed");
 
 				if(m_apPlayers[m_VoteCreator])
 					m_apPlayers[m_VoteCreator]->m_LastVoteCall = 0;
@@ -491,7 +492,7 @@ void CGameContext::OnTick()
 			else if(m_VoteEnforce == VOTE_ENFORCE_NO || time_get() > m_VoteCloseTime)
 			{
 				EndVote();
-				SendChat(-1, CGameContext::CHAT_ALL, "Vote failed");
+				SendChat(-1, CHAT_ALL, "Vote failed");
 			}
 			else if(m_VoteUpdate)
 			{
@@ -530,11 +531,12 @@ void CGameContext::OnClientPredictedInput(int ClientID, void *pInput)
 
 void CGameContext::OnClientEnter(int ClientID)
 {
-	//world.insert_entity(&players[client_id]);
+	//world.insert_entity(&players[ClientID]);
 	m_apPlayers[ClientID]->Respawn();
 	char aBuf[512];
 	str_format(aBuf, sizeof(aBuf), "'%s' entered and joined the %s", Server()->ClientName(ClientID), m_pController->GetTeamName(m_apPlayers[ClientID]->GetTeam()));
-	SendChat(-1, CGameContext::CHAT_ALL, aBuf);
+	m_pController->m_Score.InitPlayer(ClientID);
+	SendChat(-1, CHAT_ALL, aBuf);
 
 	str_format(aBuf, sizeof(aBuf), "team_join player='%d:%s' team=%d", ClientID, Server()->ClientName(ClientID), m_apPlayers[ClientID]->GetTeam());
 	Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
@@ -547,9 +549,13 @@ void CGameContext::OnClientConnected(int ClientID)
 	// Check which team the player should be on
 	const int StartTeam = g_Config.m_SvTournamentMode ? TEAM_SPECTATORS : m_pController->GetAutoTeam(ClientID);
 
-	m_apPlayers[ClientID] = new(ClientID) CPlayer(this, ClientID, StartTeam);
-	//players[client_id].init(client_id);
-	//players[client_id].client_id = client_id;
+	PlayerScore *pscore = m_pController->m_Score.SearchScore(ClientID, 1, 0);
+	if(pscore)
+		m_apPlayers[ClientID] = new(ClientID) CPlayer(this, ClientID, StartTeam, pscore->m_PosX, pscore->m_PosY, pscore->m_Diff);
+	else
+		m_apPlayers[ClientID] = new(ClientID) CPlayer(this, ClientID, StartTeam, -1, -1, -1);
+	//players[ClientID].init(ClientID);
+	//players[ClientID].ClientID = ClientID;
 
 	(void)m_pController->CheckTeamBalance();
 
@@ -613,7 +619,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				return;
 
 			CNetMsg_Cl_Say *pMsg = (CNetMsg_Cl_Say *)pRawMsg;
-			int Team = pMsg->m_Team ? pPlayer->GetTeam() : CGameContext::CHAT_ALL;
+			int Team = pMsg->m_Team ? pPlayer->GetTeam() : CHAT_ALL;
 			
 			// trim right and set maximum length to 128 utf8-characters
 			int Length = 0;
@@ -646,10 +652,115 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			// drop empty and autocreated spam messages (more than 16 characters per second)
 			if(Length == 0 || (g_Config.m_SvSpamprotection && pPlayer->m_LastChat && pPlayer->m_LastChat+Server()->TickSpeed()*((15+Length)/16) > Server()->Tick()))
 				return;
+			Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "server", pMsg->m_pMessage);
+			if(pMsg->m_pMessage[0] == '.' || pMsg->m_pMessage[0] == '!' || pMsg->m_pMessage[0] == '/' || pMsg->m_pMessage[0] == '+')
+			{
+				if(!str_comp_nocase(pMsg->m_pMessage, ".info") || !str_comp_nocase(pMsg->m_pMessage, "!info") || !str_comp_nocase(pMsg->m_pMessage, "/info"))
+				{
+					SendChatTarget(ClientID, "[N]race mod 3.3.2 [R2] by aede. Idea by Nox Nebula.");
+					SendChatTarget(ClientID, "Baseing on the Racemod from Rajh and Redix.");
+					SendChatTarget(ClientID, "incl. WaterMOD 0.60 (by inherited)");
+					SendChatTarget(ClientID, "Visit: www.Teeworlds-Server.de");
+					SendChatTarget(ClientID, "Visit: www.Teeworlds-Community.de");
+				}else if((!strncmp(pMsg->m_pMessage, ".top5", 5) || !strncmp(pMsg->m_pMessage, "!top5", 5) || !strncmp(pMsg->m_pMessage, "/top5", 5))){
+					const char *pt = p;
+					int number = 0;
+					pt += 6;
+					while(*pt && *pt >= '0' && *pt <= '9')
+					{
+						number = number*10+(*pt-'0');
+						pt++;
+					}
+					if(number)
+						m_pController->m_Score.Top5Draw(ClientID, number);
+					else
+						m_pController->m_Score.Top5Draw(ClientID, 0);
+				}else if((!str_comp_nocase(pMsg->m_pMessage, ".rank") || !str_comp_nocase(pMsg->m_pMessage, "!rank") || !str_comp_nocase(pMsg->m_pMessage, "/rank"))){
+					char buf[512];
+					const char *name = p;
+					name += 6;
+					int pos;
+					PlayerScore *pscore;
+					
+					if(!strcmp(p, "/rank"))
+						pscore = m_pController->m_Score.SearchScore(ClientID, 1, &pos);
+					else
+						pscore = m_pController->m_Score.SearchName(name, &pos, 1);
 
-			pPlayer->m_LastChat = Server()->Tick();
+					if(pscore && pos > -1 && pscore->m_Score != -1)
+					{
+						float time = pscore->m_Score;
 
-			SendChat(ClientID, Team, pMsg->m_pMessage);
+						str_format(buf, sizeof(buf), "Rank: %d (%s)", pos, pscore->m_Name);
+						SendChat(-1, CHAT_ALL, buf);
+
+						if ((int)time/60 >= 1)
+							str_format(buf, sizeof(buf), "Time: %d minute%s %f seconds", (int)time/60, (int)time/60 != 1 ? "s" : "" , time-((int)time/60)*60);
+						else
+							str_format(buf, sizeof(buf), "Time: %f seconds", time-((int)time/60)*60);
+						SendChat(-1, CHAT_ALL, buf);
+
+						if ((int)(pos - 3) >= 5)
+							str_format(buf, sizeof(buf), "Top5: '/top5 %d'!", (pos - 3));
+						else
+							str_format(buf, sizeof(buf), "Top5: '/top5'!");
+
+						SendChat(-1, CHAT_ALL, buf);
+						pPlayer->m_LastChat = time_get()+time_freq()*3;
+						return;
+					}
+					else if(pos == -1)
+						str_format(buf, sizeof(buf), "Several players were found.");
+					else
+						str_format(buf, sizeof(buf), "%s is not ranked", strcmp(p, "/rank")?name:Server()->ClientName(ClientID));
+
+					SendChatTarget(ClientID, buf);
+				}else if((!str_comp_nocase(pMsg->m_pMessage, ".save") || !str_comp_nocase(pMsg->m_pMessage, "!save") || !str_comp_nocase(pMsg->m_pMessage, "/save") || !str_comp_nocase(pMsg->m_pMessage, "+save")) && pPlayer->GetCharacter() != 0){
+					if (is_wlist(ClientID))
+					{
+						CCharacter* chr = pPlayer->GetCharacter();
+						int _x = pPlayer->m_ViewPos.x;
+						int _y = pPlayer->m_ViewPos.y;
+						int _diff = -1;
+						if (pPlayer->GetTeam() != -1 && chr && chr->m_RaceStarted)
+							_diff = Server()->Tick() - chr->m_StartTime;
+
+  						pPlayer->m_SaveX = _x;
+  						pPlayer->m_SaveY = _y;
+						pPlayer->m_Diff = _diff;
+
+						m_pController->m_Score.WlistParsePlayer(ClientID, _x, _y, _diff);
+						SendChatTarget(ClientID, "Position saved!");
+					}
+					else
+						SendChatTarget(ClientID, "Not whitelisted!");
+				}else if((!str_comp_nocase(pMsg->m_pMessage, ".load") || !str_comp_nocase(pMsg->m_pMessage, "!load") || !str_comp_nocase(pMsg->m_pMessage, "/load") || !str_comp_nocase(pMsg->m_pMessage, "+load")) && pPlayer->GetCharacter() != 0){
+					if (is_wlist(ClientID))
+					{
+  						CCharacter* chr = pPlayer->GetCharacter();
+  						int save_x = pPlayer->m_SaveX;
+  						int save_y = pPlayer->m_SaveY;
+		  
+  						if(chr && save_x != -1 && save_y != -1)
+  						{
+  							if(g_Config.m_SvLoadEnd || pPlayer->m_Diff <= 0)
+  								chr->m_RaceStarted = false;
+							else
+								chr->m_StartTime = Server()->Tick()-pPlayer->m_Diff;
+
+  							chr->m_Core.m_Pos.x = save_x;
+  							chr->m_Core.m_Pos.y = save_y;
+  							SendChatTarget(ClientID, "Position loadet.");
+  						} else
+  							SendChatTarget(ClientID, "No position setted.");
+					}
+					else
+						SendChatTarget(ClientID, "Not whitelisted!");
+				}
+			}else{
+				pPlayer->m_LastChat = Server()->Tick();
+				SendChat(ClientID, Team, pMsg->m_pMessage);
+			}
 		}
 		else if(MsgID == NETMSGTYPE_CL_CALLVOTE)
 		{
@@ -790,7 +901,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 
 			if(aCmd[0])
 			{
-				SendChat(-1, CGameContext::CHAT_ALL, aChatmsg);
+				SendChat(-1, CHAT_ALL, aChatmsg);
 				StartVote(aDesc, aCmd, pReason);
 				pPlayer->m_Vote = 1;
 				pPlayer->m_VotePos = m_VotePos = 1;
@@ -890,7 +1001,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			{
 				char aChatText[256];
 				str_format(aChatText, sizeof(aChatText), "'%s' changed name to '%s'", aOldName, Server()->ClientName(ClientID));
-				SendChat(-1, CGameContext::CHAT_ALL, aChatText);
+				SendChat(-1, CHAT_ALL, aChatText);
 			}
 			Server()->SetClientClan(ClientID, pMsg->m_pClan);
 			Server()->SetClientCountry(ClientID, pMsg->m_Country);
@@ -1095,7 +1206,7 @@ void CGameContext::ConBroadcast(IConsole::IResult *pResult, void *pUserData)
 void CGameContext::ConSay(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	pSelf->SendChat(-1, CGameContext::CHAT_ALL, pResult->GetString(0));
+	pSelf->SendChat(-1, CHAT_ALL, pResult->GetString(0));
 }
 
 void CGameContext::ConSetTeam(IConsole::IResult *pResult, void *pUserData)
@@ -1123,7 +1234,7 @@ void CGameContext::ConSetTeamAll(IConsole::IResult *pResult, void *pUserData)
 
 	char aBuf[256];
 	str_format(aBuf, sizeof(aBuf), "All players were moved to the %s", pSelf->m_pController->GetTeamName(Team));
-	pSelf->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
+	pSelf->SendChat(-1, CHAT_ALL, aBuf);
 
 	for(int i = 0; i < MAX_CLIENTS; ++i)
 		if(pSelf->m_apPlayers[i])
@@ -1152,7 +1263,7 @@ void CGameContext::ConShuffleTeams(IConsole::IResult *pResult, void *pUserData)
 			++PlayerTeam;
 	PlayerTeam = (PlayerTeam+1)/2;
 	
-	pSelf->SendChat(-1, CGameContext::CHAT_ALL, "Teams were shuffled");
+	pSelf->SendChat(-1, CHAT_ALL, "Teams were shuffled");
 
 	for(int i = 0; i < MAX_CLIENTS; ++i)
 	{
@@ -1186,9 +1297,9 @@ void CGameContext::ConLockTeams(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	pSelf->m_LockTeams ^= 1;
 	if(pSelf->m_LockTeams)
-		pSelf->SendChat(-1, CGameContext::CHAT_ALL, "Teams were locked");
+		pSelf->SendChat(-1, CHAT_ALL, "Teams were locked");
 	else
-		pSelf->SendChat(-1, CGameContext::CHAT_ALL, "Teams were unlocked");
+		pSelf->SendChat(-1, CHAT_ALL, "Teams were unlocked");
 }
 
 void CGameContext::ConAddVote(IConsole::IResult *pResult, void *pUserData)
@@ -1749,7 +1860,7 @@ void CGameContext::ConBanAll(IConsole::IResult *pResult, void *pUserData)
 
 	for (int i = 0; i < MAX_CLIENTS; i++)
 	{
-		if(pSelf->m_apPlayers[i] /*&& !is_wlist(i)*/)
+		if(pSelf->m_apPlayers[i] && !is_wlist(i))
 		{
 			str_format(cmd, sizeof(cmd), "ban %d %d", i, min);
 			pSelf->Console()->ExecuteLine(cmd);
@@ -1777,9 +1888,9 @@ void CGameContext::ConWlistAdd(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int cid = clamp(pResult->GetInteger(0), 0, (int)MAX_CLIENTS-1);
-	//TODO: wlist
-	/*if(pSelf->m_apPlayers[cid])
-		wlist_add(cid);*/
+
+	if(pSelf->m_apPlayers[cid])
+		wlist_add(cid);
 	char aBuf[512];
 	str_format(aBuf, sizeof(aBuf), "User %d:%s is now whitelisted!", cid, pSelf->Server()->ClientName(cid));
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
@@ -1789,9 +1900,9 @@ void CGameContext::ConWlistRemove(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int cid = clamp(pResult->GetInteger(0), 0, (int)MAX_CLIENTS-1);
-	//TODO: wlist
-	/*if(pSelf->m_apPlayers[cid])
-		wlist_remove(pSelf->Server()->ClientName(cid));*/
+
+	if(pSelf->m_apPlayers[cid])
+		wlist_remove(pSelf->Server()->ClientName(cid));
 
 	char aBuf[512];
 	str_format(aBuf, sizeof(aBuf), "User %d:%s is not longer whitelisted!", cid, pSelf->Server()->ClientName(cid) );
@@ -1801,8 +1912,8 @@ void CGameContext::ConWlistRemove(IConsole::IResult *pResult, void *pUserData)
 void CGameContext::ConWlistRemoveName(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	//TODO: wlist
-	//wlist_remove(pResult->GetString(0));
+
+	wlist_remove(pResult->GetString(0));
 
 	char aBuf[512];
 	str_format(aBuf, sizeof(aBuf), "User %s is not longer whitelisted!", pResult->GetString(0) );
@@ -1816,20 +1927,18 @@ void CGameContext::ConWlistCheck(IConsole::IResult *pResult, void *pUserData)
 	if(pSelf->m_apPlayers[cid])
 	{
 		char aBuf[512];
-		//TODO: wlist
-		/*if(is_wlist(cid))
+		if(is_wlist(cid))
 			str_format(aBuf, sizeof(aBuf), "User %d:%s is whitelisted!", cid, pSelf->Server()->ClientName(cid) );
 		else
 			str_format(aBuf, sizeof(aBuf), "User %d:%s is !NOT! whitelisted!", cid, pSelf->Server()->ClientName(cid));
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);*/
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
 	}
 }
 
 void CGameContext::ConWlistShow(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	//TODO: wlist
-	//wlist_show();
+	wlist_show();
 }
 
 void CGameContext::ConSwitchDoor(IConsole::IResult *pResult, void *pUserData)
