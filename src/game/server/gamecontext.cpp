@@ -665,7 +665,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					SendChatTarget(ClientID, "Visit: www.Teeworlds-Community.de");
 					SendChatTarget(ClientID, "Ported to teeworlds 0.6 by Sadale");
 				}else if((!strncmp(pMsg->m_pMessage, ".top5", 5) || !strncmp(pMsg->m_pMessage, "!top5", 5) || !strncmp(pMsg->m_pMessage, "/top5", 5))){
-					const char *pt = p;
+					const char *pt = pMsg->m_pMessage;
 					int number = 0;
 					pt += 6;
 					while(*pt && *pt >= '0' && *pt <= '9')
@@ -679,12 +679,12 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 						m_pController->m_Score.Top5Draw(ClientID, 0);
 				}else if((!str_comp_nocase(pMsg->m_pMessage, ".rank") || !str_comp_nocase(pMsg->m_pMessage, "!rank") || !str_comp_nocase(pMsg->m_pMessage, "/rank"))){
 					char buf[512];
-					const char *name = p;
+					const char *name = pMsg->m_pMessage;
 					name += 6;
 					int pos;
 					PlayerScore *pscore;
 					
-					if(!strcmp(p, "/rank"))
+					if(!strcmp( pMsg->m_pMessage, "/rank"))
 						pscore = m_pController->m_Score.SearchScore(ClientID, 1, &pos);
 					else
 						pscore = m_pController->m_Score.SearchName(name, &pos, 1);
@@ -714,7 +714,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					else if(pos == -1)
 						str_format(buf, sizeof(buf), "Several players were found.");
 					else
-						str_format(buf, sizeof(buf), "%s is not ranked", strcmp(p, "/rank")?name:Server()->ClientName(ClientID));
+						str_format(buf, sizeof(buf), "%s is not ranked", strcmp( pMsg->m_pMessage, "/rank")?name:Server()->ClientName(ClientID));
 
 					SendChatTarget(ClientID, buf);
 				}else if((!str_comp_nocase(pMsg->m_pMessage, ".save") || !str_comp_nocase(pMsg->m_pMessage, "!save") || !str_comp_nocase(pMsg->m_pMessage, "/save") || !str_comp_nocase(pMsg->m_pMessage, "+save")) && pPlayer->GetCharacter() != 0){
