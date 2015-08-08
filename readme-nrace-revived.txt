@@ -14,3 +14,4 @@ Known issues:
 Fun Facts:
 * Race start tile resets time only when you don't have grenade weapon on hand
 * By placing a "to" teleport tile without a "from" teleport tile, that "to" tile become a checkpoint for the race
+* Set sv_teamdamage to 1 to enable hammering
