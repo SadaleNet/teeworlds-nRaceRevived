@@ -33,6 +33,7 @@ struct Door
 	int m_PosCount;
 	int m_APosCount;
 	int m_ChangeTick;
+	int m_Team;
 
 	vec2 m_TmpPos[126];
 	bool m_Mark[128];

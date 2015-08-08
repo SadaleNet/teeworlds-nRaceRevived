@@ -768,6 +768,13 @@ void IGameController::InitDoors()
 {
 	//Initialize the doors
 	for(int doorno = 0; doorno < DOORS_NUM; doorno++) {
+		if(doorno <10) {
+			m_Doors[doorno].m_Team = -1;
+		} else if(doorno >=10 && doorno < 13) {
+			m_Doors[doorno].m_Team = 0; //red door
+		} else {
+			m_Doors[doorno].m_Team = 1; //blue door
+		}
 		if(!m_Doors[doorno].m_Valid)
 			continue;
 		m_Doors[doorno].m_Pos[0] = m_Doors[doorno].m_TmpStart;
@@ -802,15 +809,15 @@ void IGameController::InitDoors()
 
 			if(j==m_Doors[doorno].m_PosCount-2 && !m_Doors[doorno].m_Circle)
 				to = to + normalize(to-from)*17;
-			m_Doors[doorno].m_Light[j] = new CLight(&GameServer()->m_World, from, to);
+			m_Doors[doorno].m_Light[j] = new CLight(&GameServer()->m_World, from, to, m_Doors[doorno].m_Team);
 			m_Doors[doorno].m_Light[j]->m_KeepPoints = true;
 		}
 		for(int idx = 0; idx < m_Doors[doorno].m_APosCount; idx++) {
-			m_Doors[doorno].m_ALight[idx][0] = new CLight(&GameServer()->m_World, m_Doors[doorno].m_APos[idx], m_Doors[doorno].m_APos[idx]);
-			m_Doors[doorno].m_ALight[idx][1] = new CLight(&GameServer()->m_World, vec2(m_Doors[doorno].m_APos[idx].x-15,m_Doors[doorno].m_APos[idx].y),  vec2(m_Doors[doorno].m_APos[idx].x,m_Doors[doorno].m_APos[idx].y-15));
-			m_Doors[doorno].m_ALight[idx][2] = new CLight(&GameServer()->m_World, vec2(m_Doors[doorno].m_APos[idx].x,m_Doors[doorno].m_APos[idx].y-15),  vec2(m_Doors[doorno].m_APos[idx].x+15,m_Doors[doorno].m_APos[idx].y));
-			m_Doors[doorno].m_ALight[idx][3] = new CLight(&GameServer()->m_World, vec2(m_Doors[doorno].m_APos[idx].x+15,m_Doors[doorno].m_APos[idx].y),  vec2(m_Doors[doorno].m_APos[idx].x,m_Doors[doorno].m_APos[idx].y+15));
-			m_Doors[doorno].m_ALight[idx][4] = new CLight(&GameServer()->m_World, vec2(m_Doors[doorno].m_APos[idx].x,m_Doors[doorno].m_APos[idx].y+15),  vec2(m_Doors[doorno].m_APos[idx].x-15,m_Doors[doorno].m_APos[idx].y));
+			m_Doors[doorno].m_ALight[idx][0] = new CLight(&GameServer()->m_World, m_Doors[doorno].m_APos[idx], m_Doors[doorno].m_APos[idx], m_Doors[doorno].m_Team);
+			m_Doors[doorno].m_ALight[idx][1] = new CLight(&GameServer()->m_World, vec2(m_Doors[doorno].m_APos[idx].x-15,m_Doors[doorno].m_APos[idx].y),  vec2(m_Doors[doorno].m_APos[idx].x,m_Doors[doorno].m_APos[idx].y-15), m_Doors[doorno].m_Team);
+			m_Doors[doorno].m_ALight[idx][2] = new CLight(&GameServer()->m_World, vec2(m_Doors[doorno].m_APos[idx].x,m_Doors[doorno].m_APos[idx].y-15),  vec2(m_Doors[doorno].m_APos[idx].x+15,m_Doors[doorno].m_APos[idx].y), m_Doors[doorno].m_Team);
+			m_Doors[doorno].m_ALight[idx][3] = new CLight(&GameServer()->m_World, vec2(m_Doors[doorno].m_APos[idx].x+15,m_Doors[doorno].m_APos[idx].y),  vec2(m_Doors[doorno].m_APos[idx].x,m_Doors[doorno].m_APos[idx].y+15), m_Doors[doorno].m_Team);
+			m_Doors[doorno].m_ALight[idx][4] = new CLight(&GameServer()->m_World, vec2(m_Doors[doorno].m_APos[idx].x,m_Doors[doorno].m_APos[idx].y+15),  vec2(m_Doors[doorno].m_APos[idx].x-15,m_Doors[doorno].m_APos[idx].y), m_Doors[doorno].m_Team);
 		}
 	}
 	for(int i = 0; i < DOORS_NUM; i++)

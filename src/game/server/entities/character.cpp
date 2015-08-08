@@ -585,8 +585,16 @@ void CCharacter::Tick()
 			if(distance(m_Pos, GameServer()->m_pController->m_Doors[i].m_APos[j]) < 30.0f && Server()->Tick()-GameServer()->m_pController->m_Doors[i].m_ChangeTick > 50)
 			{
 				GameServer()->m_pController->m_Doors[i].m_ChangeTick = Server()->Tick();
-				GameServer()->m_pController->SetDoor(i, !GameServer()->m_pController->GetDoor(i));
-				GameServer()->CreateSound(m_Pos, SOUND_WEAPON_NOAMMO);
+				if(GameServer()->m_pController->m_Doors[i].m_Team == -1 || GameServer()->m_pController->m_Doors[i].m_Team == m_pPlayer->GetTeam())
+				{
+					GameServer()->m_pController->SetDoor(i, !GameServer()->m_pController->GetDoor(i));
+					GameServer()->CreateSound(m_Pos, SOUND_WEAPON_NOAMMO);
+				}
+				else
+				{
+					GameServer()->SendChatTarget(m_pPlayer->GetCID(), "This is your enemies' door, you can not operate it!");
+					GameServer()->CreateSound(m_Pos, SOUND_HOOK_NOATTACH);
+				}
 			}
 		}
 	}

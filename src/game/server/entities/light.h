@@ -18,7 +18,8 @@ public:
 	bool m_Visible;
 	bool m_KeepPoints;
 	int m_Width;
-	CLight(CGameWorld *pGameWorld, vec2 From, vec2 To);
+	int m_Team;
+	CLight(CGameWorld *pGameWorld, vec2 From, vec2 To, int Team);
 	
 	virtual void Reset();
 	virtual void Tick();
