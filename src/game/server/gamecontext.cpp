@@ -3,6 +3,7 @@
 #include <new>
 #include <fstream>
 #include <string.h>
+#include <ctype.h>
 #include <base/math.h>
 #include <engine/shared/config.h>
 #include <engine/map.h>
@@ -539,6 +540,14 @@ void CGameContext::OnClientEnter(int ClientID)
 	m_pController->m_Score.InitPlayer(ClientID);
 	SendChat(-1, CHAT_ALL, aBuf);
 
+	PlayerScore *pscore = m_pController->m_Score.SearchScore(ClientID, 1, 0);
+	if(pscore)
+	{
+		m_apPlayers[ClientID]->m_SaveX = pscore->m_PosX;
+		m_apPlayers[ClientID]->m_SaveY = pscore->m_PosY;
+		m_apPlayers[ClientID]->m_Diff = pscore->m_Diff;
+	}
+
 	str_format(aBuf, sizeof(aBuf), "team_join player='%d:%s' team=%d", ClientID, Server()->ClientName(ClientID), m_apPlayers[ClientID]->GetTeam());
 	Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
 
@@ -550,11 +559,7 @@ void CGameContext::OnClientConnected(int ClientID)
 	// Check which team the player should be on
 	const int StartTeam = g_Config.m_SvTournamentMode ? TEAM_SPECTATORS : m_pController->GetAutoTeam(ClientID);
 
-	PlayerScore *pscore = m_pController->m_Score.SearchScore(ClientID, 1, 0);
-	if(pscore)
-		m_apPlayers[ClientID] = new(ClientID) CPlayer(this, ClientID, StartTeam, pscore->m_PosX, pscore->m_PosY, pscore->m_Diff);
-	else
-		m_apPlayers[ClientID] = new(ClientID) CPlayer(this, ClientID, StartTeam, -1, -1, -1);
+	m_apPlayers[ClientID] = new(ClientID) CPlayer(this, ClientID, StartTeam);
 	//players[ClientID].init(ClientID);
 	//players[ClientID].ClientID = ClientID;
 
@@ -654,7 +659,8 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			if(Length == 0 || (g_Config.m_SvSpamprotection && pPlayer->m_LastChat && pPlayer->m_LastChat+Server()->TickSpeed()*((15+Length)/16) > Server()->Tick()))
 				return;
 			Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "server", pMsg->m_pMessage);
-			if(pMsg->m_pMessage[0] == '.' || pMsg->m_pMessage[0] == '!' || pMsg->m_pMessage[0] == '/' || pMsg->m_pMessage[0] == '+')
+			if((pMsg->m_pMessage[0] == '.' || pMsg->m_pMessage[0] == '!' || pMsg->m_pMessage[0] == '/' || pMsg->m_pMessage[0] == '+')
+			&& ( (Length >= 1 && isalpha(pMsg->m_pMessage[1])) || Length == 1 ) )
 			{
 				if(!str_comp_nocase(pMsg->m_pMessage, ".info") || !str_comp_nocase(pMsg->m_pMessage, "!info") || !str_comp_nocase(pMsg->m_pMessage, "/info"))
 				{
@@ -665,7 +671,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					SendChatTarget(ClientID, "Visit: www.Teeworlds-Community.de");
 					SendChatTarget(ClientID, "Ported to teeworlds 0.6 by Sadale");
 				}else if((!strncmp(pMsg->m_pMessage, ".top5", 5) || !strncmp(pMsg->m_pMessage, "!top5", 5) || !strncmp(pMsg->m_pMessage, "/top5", 5))){
-					const char *pt = p;
+					const char *pt = pMsg->m_pMessage;
 					int number = 0;
 					pt += 6;
 					while(*pt && *pt >= '0' && *pt <= '9')
@@ -679,12 +685,12 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 						m_pController->m_Score.Top5Draw(ClientID, 0);
 				}else if((!str_comp_nocase(pMsg->m_pMessage, ".rank") || !str_comp_nocase(pMsg->m_pMessage, "!rank") || !str_comp_nocase(pMsg->m_pMessage, "/rank"))){
 					char buf[512];
-					const char *name = p;
+					const char *name = pMsg->m_pMessage;
 					name += 6;
 					int pos;
 					PlayerScore *pscore;
 					
-					if(!strcmp(p, "/rank"))
+					if(!strcmp( pMsg->m_pMessage, "/rank"))
 						pscore = m_pController->m_Score.SearchScore(ClientID, 1, &pos);
 					else
 						pscore = m_pController->m_Score.SearchName(name, &pos, 1);
@@ -714,7 +720,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					else if(pos == -1)
 						str_format(buf, sizeof(buf), "Several players were found.");
 					else
-						str_format(buf, sizeof(buf), "%s is not ranked", strcmp(p, "/rank")?name:Server()->ClientName(ClientID));
+						str_format(buf, sizeof(buf), "%s is not ranked", strcmp( pMsg->m_pMessage, "/rank")?name:Server()->ClientName(ClientID));
 
 					SendChatTarget(ClientID, buf);
 				}else if((!str_comp_nocase(pMsg->m_pMessage, ".save") || !str_comp_nocase(pMsg->m_pMessage, "!save") || !str_comp_nocase(pMsg->m_pMessage, "/save") || !str_comp_nocase(pMsg->m_pMessage, "+save")) && pPlayer->GetCharacter() != 0){
