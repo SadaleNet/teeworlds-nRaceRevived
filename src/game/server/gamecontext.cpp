@@ -663,6 +663,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					SendChatTarget(ClientID, "incl. WaterMOD 0.60 (by inherited)");
 					SendChatTarget(ClientID, "Visit: www.Teeworlds-Server.de");
 					SendChatTarget(ClientID, "Visit: www.Teeworlds-Community.de");
+					SendChatTarget(ClientID, "Ported to teeworlds 0.6 by Sadale");
 				}else if((!strncmp(pMsg->m_pMessage, ".top5", 5) || !strncmp(pMsg->m_pMessage, "!top5", 5) || !strncmp(pMsg->m_pMessage, "/top5", 5))){
 					const char *pt = p;
 					int number = 0;

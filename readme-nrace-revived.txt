@@ -1,3 +1,5 @@
+[N]RaceRevived. A [N]Race ported of 0.6 by Sadale
+
 Features:
 * fully compatible with [N]Race maps and settings
 * fast download implemented
