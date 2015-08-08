@@ -2,7 +2,7 @@
 
 Features:
 * fully compatible with [N]Race maps and settings
-* fast download implemented
+* fast download implemented(copied from DDNet code)
 * loads .cfg file per map-based. e.g. if you open maps/foo.map, then maps/foo.cfg is automatically loaded
 * wlist now has IPv6 support
 
