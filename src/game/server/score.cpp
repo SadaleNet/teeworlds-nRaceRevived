@@ -122,7 +122,7 @@ PlayerScore *Score::SearchScore(int id, bool score_ip, int *position)
 {
 	char ip[256];
 	m_GameController->Server()->GetClientAddr(id, ip, sizeof(ip));
-	
+
 	int pos = 1;
 	for(std::list<PlayerScore>::iterator i = top.begin(); i != top.end(); i++)
 	{
