@@ -66,7 +66,16 @@ void CPickup::Tick()
 				break;
 
 			case POWERUP_WEAPON:
-				if(m_Subtype >= 0 && m_Subtype < NUM_WEAPONS)
+				if(g_Config.m_SvWaterInsta && g_Config.m_SvWaterStrip && m_Subtype == WEAPON_RIFLE) {
+					 if(!pChr->m_aWeapons[WEAPON_RIFLE].m_Got) {
+						pChr->m_aWeapons[WEAPON_RIFLE].m_Got=true;
+						pChr->m_aWeapons[WEAPON_RIFLE].m_Ammo=-1;
+						pChr->m_ActiveWeapon=WEAPON_RIFLE;
+						RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
+						GameServer()->CreateSound(m_Pos, SOUND_PICKUP_SHOTGUN);
+					}
+					break;	
+				}else if(m_Subtype >= 0 && m_Subtype < NUM_WEAPONS)
 				{
 					if(pChr->GiveWeapon(m_Subtype, 10))
 					{

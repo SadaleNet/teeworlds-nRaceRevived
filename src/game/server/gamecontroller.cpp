@@ -144,23 +144,16 @@ bool IGameController::OnEntity(int Index, vec2 Pos)
 		Type = POWERUP_ARMOR;
 	else if(Index == ENTITY_HEALTH_1)
 		Type = POWERUP_HEALTH;
-	else if(Index == ENTITY_WEAPON_SHOTGUN)
-	{
+	else if(g_Config.m_SvWaterInsta && Index == ENTITY_WEAPON_SHOTGUN){
 		Type = POWERUP_WEAPON;
 		SubType = WEAPON_SHOTGUN;
-	}
-	else if(Index == ENTITY_WEAPON_GRENADE)
-	{
+	}else if(g_Config.m_SvWaterInsta && Index == ENTITY_WEAPON_GRENADE){
 		Type = POWERUP_WEAPON;
 		SubType = WEAPON_GRENADE;
-	}
-	else if(Index == ENTITY_WEAPON_RIFLE)
-	{
+	}else if(g_Config.m_SvWaterInsta && Index == ENTITY_WEAPON_RIFLE){
 		Type = POWERUP_WEAPON;
 		SubType = WEAPON_RIFLE;
-	}
-	else if(Index == ENTITY_POWERUP_NINJA && g_Config.m_SvPowerups)
-	{
+	}else if(g_Config.m_SvWaterInsta && Index == ENTITY_POWERUP_NINJA && g_Config.m_SvPowerups){
 		Type = POWERUP_NINJA;
 		SubType = WEAPON_NINJA;
 	}else if(Index >= DOOR_BASE && Index < DOOR_BASE+16) {
@@ -172,18 +165,26 @@ bool IGameController::OnEntity(int Index, vec2 Pos)
 			m_Doors[Index-DOOR_BASE].m_TmpEnd = Pos;
 			m_Doors[Index-DOOR_BASE].m_Circle = false;
 		}
-	}
-	else if(Index >= DOOR_BASE+16 && Index < DOOR_BASE+32) {
+	}else if(Index >= DOOR_BASE+16 && Index < DOOR_BASE+32) {
 		int doorno = Index-DOOR_BASE-16;
 		if(m_Doors[doorno].m_PosCount < 126) {
 			m_Doors[doorno].m_TmpPos[m_Doors[doorno].m_PosCount++] = Pos;
 		}
-	}
-	else if(Index >= DOOR_BASE+32 && Index < DOOR_BASE+48) {
+	}else if(Index >= DOOR_BASE+32 && Index < DOOR_BASE+48) {
 		int doorno = Index-DOOR_BASE-32;
 		int idx = m_Doors[doorno].m_APosCount++;
 		m_Doors[doorno].m_APos[idx] = Pos;
 	}
+
+
+	if((g_Config.m_SvWaterInsta && g_Config.m_SvWaterStrip) || (!g_Config.m_SvWaterInsta))
+	{
+		if(Index == ENTITY_WEAPON_RIFLE)
+		{
+			Type = POWERUP_WEAPON;
+			SubType = WEAPON_RIFLE;
+		}
+ 	}
 
 	if(Type != -1)
 	{
@@ -391,8 +392,14 @@ void IGameController::OnCharacterSpawn(class CCharacter *pChr)
 	pChr->IncreaseHealth(10);
 
 	// give default weapons
-	pChr->GiveWeapon(WEAPON_HAMMER, -1);
-	pChr->GiveWeapon(WEAPON_GUN, 10);
+	if(g_Config.m_SvWaterInsta) {
+		pChr->GiveWeapon(WEAPON_HAMMER, -1);
+		pChr->GiveWeapon(WEAPON_RIFLE, -1);
+		pChr->SetWeapon(WEAPON_RIFLE);
+	} else {
+		pChr->GiveWeapon(WEAPON_HAMMER, -1);
+		pChr->GiveWeapon(WEAPON_GUN, 10);
+	}
 }
 
 void IGameController::DoWarmup(int Seconds)

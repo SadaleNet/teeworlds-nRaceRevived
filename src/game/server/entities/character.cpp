@@ -248,7 +248,7 @@ void CCharacter::HandleWeaponSwitch()
 
 void CCharacter::FireWeapon()
 {
-	if(m_ReloadTimer != 0)
+	if(m_ReloadTimer != 0 || m_FreezeTime > 0)
 		return;
 
 	DoWeaponSwitch();
@@ -311,20 +311,39 @@ void CCharacter::FireWeapon()
 				else
 					GameServer()->CreateHammerHit(ProjStartPos);
 
+				if(g_Config.m_SvWaterInsta && apEnts[i]->m_pPlayer->GetTeam() != m_pPlayer->GetTeam())
+				{
+					pTarget->TakeDamage(vec2(0,-1.0f), 0, m_pPlayer->GetCID(), m_ActiveWeapon);
+					if(g_Config.m_SvWaterStrip && apEnts[i]->m_pPlayer->GetTeam() != m_pPlayer->GetTeam() && apEnts[i]->m_aWeapons[WEAPON_RIFLE].m_Got)
+					{
+						apEnts[i]->m_aWeapons[WEAPON_RIFLE].m_Got = false;
+						if(apEnts[i]->m_ActiveWeapon == WEAPON_RIFLE)
+							apEnts[i]->m_ActiveWeapon=WEAPON_HAMMER;
+					}
+					apEnts[i]->m_FreezeTime = g_Config.m_SvWaterFreezetime;
+					GameServer()->SendEmoticon(apEnts[i]->m_pPlayer->GetCID(),  12);
+				}else{
+					apEnts[i]->TakeDamage(vec2(0,-1.0f), g_pData->m_Weapons.m_Hammer.m_pBase->m_Damage, m_pPlayer->GetCID(), m_ActiveWeapon);
+				}
+
 				vec2 Dir;
 				if (length(pTarget->m_Pos - m_Pos) > 0.0f)
 					Dir = normalize(pTarget->m_Pos - m_Pos);
 				else
 					Dir = vec2(0.f, -1.f);
 
-				pTarget->TakeDamage(vec2(0.f, -1.f) + normalize(Dir + vec2(0.f, -1.1f)) * 10.0f, g_pData->m_Weapons.m_Hammer.m_pBase->m_Damage,
-					m_pPlayer->GetCID(), m_ActiveWeapon);
+				apEnts[i]->m_Core.m_Vel += normalize(Dir + vec2(0,-1.1f)) * 10.0f;
 				Hits++;
 			}
 
 			// if we Hit anything, we have to wait for the reload
 			if(Hits)
-				m_ReloadTimer = Server()->TickSpeed()/3;
+			{
+				if(g_Config.m_SvWaterInsta)
+					m_ReloadTimer = g_Config.m_SvWaterFreezetime*2;
+				else
+					m_ReloadTimer = Server()->TickSpeed()/3;
+			}
 
 		} break;
 
@@ -560,6 +579,22 @@ void CCharacter::Tick()
 		GameServer()->SendBroadcast(Buf, m_pPlayer->GetCID());
 
 		m_pPlayer->m_ForceBalanced = false;
+	}
+
+	if(m_Input.m_Direction != 0 || m_Input.m_Jump != 0)
+		m_LastAction = Server()->Tick();
+
+	if(m_FreezeTime > 0)
+	{
+		m_FreezeTime--;
+		if(m_FreezeTime > 0)
+		{
+			m_Input.m_Direction = 0;
+			m_Input.m_Jump = 0;
+			m_Core.m_HookState = HOOK_RETRACT_START;
+			if( Server()->Tick()%Server()->TickSpeed() == 0 )
+				GameServer()->SendEmoticon(m_pPlayer->GetCID(), 11);
+		}
 	}
 
 	m_Core.m_Input = m_Input;

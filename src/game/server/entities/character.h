@@ -115,6 +115,7 @@ private:
 	int m_Armor;
 
 	bool m_IsWater, m_DoSplash;
+	int m_FreezeTime;
 
 	// race var
 	int m_StartTime;
@@ -147,6 +148,7 @@ private:
 	bool IsHittingDoor();
 
 	friend class CGameContext;
+	friend class CPickup;
 };
 
 #endif
