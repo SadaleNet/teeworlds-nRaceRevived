@@ -12,7 +12,9 @@
 #include <game/version.h>
 #include <game/collision.h>
 #include <game/gamecore.h>
-#include "gamemodes/mod.h"
+#include "gamemodes/dm.h"
+#include "gamemodes/tdm.h"
+#include "gamemodes/ctf.h"
 #include <fstream>
 
 enum
@@ -1641,7 +1643,12 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 	}
 
 	// select gametype
-	m_pController = new CGameControllerMOD(this);
+	if(!str_comp_nocase(g_Config.m_SvGametype, "nctf") || !str_comp_nocase(g_Config.m_SvGametype, "ctf"))
+		m_pController = new CGameControllerCTF(this);
+	else if(!str_comp_nocase(g_Config.m_SvGametype, "ntdm") || !str_comp_nocase(g_Config.m_SvGametype, "tdm"))
+		m_pController = new CGameControllerTDM(this);
+	else
+		m_pController = new CGameControllerDM(this);
 
 	// setup core world
 	//for(int i = 0; i < MAX_CLIENTS; i++)
