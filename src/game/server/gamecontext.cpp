@@ -685,18 +685,15 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 						m_pController->m_Score.Top5Draw(ClientID, number);
 					else
 						m_pController->m_Score.Top5Draw(ClientID, 0);
-				}else if((!str_comp_nocase(pMsg->m_pMessage, ".rank") || !str_comp_nocase(pMsg->m_pMessage, "!rank") || !str_comp_nocase(pMsg->m_pMessage, "/rank"))){
+				}else if((!strncmp(pMsg->m_pMessage, ".rank", 5) || !strncmp(pMsg->m_pMessage, "!rank", 5) || !strncmp(pMsg->m_pMessage, "/rank", 5))){
 					char buf[512];
-					const char *name = pMsg->m_pMessage;
-					name += 6;
 					int pos;
-					PlayerScore *pscore;
-					
-					if(!strcmp( pMsg->m_pMessage, "/rank"))
-						pscore = m_pController->m_Score.SearchScore(ClientID, 1, &pos);
-					else
-						pscore = m_pController->m_Score.SearchName(name, &pos, 1);
+					PlayerScore *pscore = NULL;
 
+					if(strlen(pMsg->m_pMessage)>=7)
+						pscore = m_pController->m_Score.SearchName(&pMsg->m_pMessage[6], &pos, 1);
+					else
+						pscore = m_pController->m_Score.SearchScore(ClientID, 1, &pos);
 					if(pscore && pos > -1 && pscore->m_Score != -1)
 					{
 						float time = pscore->m_Score;
@@ -716,13 +713,13 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 							str_format(buf, sizeof(buf), "Top5: '/top5'!");
 
 						SendChat(-1, CHAT_ALL, buf);
-						pPlayer->m_LastChat = time_get()+time_freq()*3;
+						pPlayer->m_LastChat = Server()->Tick()+Server()->TickSpeed()*3;
 						return;
 					}
 					else if(pos == -1)
 						str_format(buf, sizeof(buf), "Several players were found.");
 					else
-						str_format(buf, sizeof(buf), "%s is not ranked", strcmp( pMsg->m_pMessage, "/rank")?name:Server()->ClientName(ClientID));
+						str_format(buf, sizeof(buf), "%s is not ranked", strlen(pMsg->m_pMessage)>=7?&pMsg->m_pMessage[6]:Server()->ClientName(ClientID));
 
 					SendChatTarget(ClientID, buf);
 				}else if((!str_comp_nocase(pMsg->m_pMessage, ".save") || !str_comp_nocase(pMsg->m_pMessage, "!save") || !str_comp_nocase(pMsg->m_pMessage, "/save") || !str_comp_nocase(pMsg->m_pMessage, "+save")) && pPlayer->GetCharacter() != 0){
@@ -766,6 +763,8 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					}
 					else
 						SendChatTarget(ClientID, "Not whitelisted!");
+				}else{
+						SendChatTarget(ClientID, "No comamnd!");
 				}
 			}else{
 				pPlayer->m_LastChat = Server()->Tick();
