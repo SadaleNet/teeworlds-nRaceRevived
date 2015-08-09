@@ -144,16 +144,16 @@ bool IGameController::OnEntity(int Index, vec2 Pos)
 		Type = POWERUP_ARMOR;
 	else if(Index == ENTITY_HEALTH_1)
 		Type = POWERUP_HEALTH;
-	else if(g_Config.m_SvWaterInsta && Index == ENTITY_WEAPON_SHOTGUN){
+	else if(!g_Config.m_SvWaterInsta && Index == ENTITY_WEAPON_SHOTGUN){
 		Type = POWERUP_WEAPON;
 		SubType = WEAPON_SHOTGUN;
-	}else if(g_Config.m_SvWaterInsta && Index == ENTITY_WEAPON_GRENADE){
+	}else if(!g_Config.m_SvWaterInsta && Index == ENTITY_WEAPON_GRENADE){
 		Type = POWERUP_WEAPON;
 		SubType = WEAPON_GRENADE;
-	}else if(g_Config.m_SvWaterInsta && Index == ENTITY_WEAPON_RIFLE){
+	}else if(!g_Config.m_SvWaterInsta && Index == ENTITY_WEAPON_RIFLE){
 		Type = POWERUP_WEAPON;
 		SubType = WEAPON_RIFLE;
-	}else if(g_Config.m_SvWaterInsta && Index == ENTITY_POWERUP_NINJA && g_Config.m_SvPowerups){
+	}else if(!g_Config.m_SvWaterInsta && Index == ENTITY_POWERUP_NINJA && g_Config.m_SvPowerups){
 		Type = POWERUP_NINJA;
 		SubType = WEAPON_NINJA;
 	}else if(Index >= DOOR_BASE && Index < DOOR_BASE+16) {
